@@ -19,6 +19,22 @@ Lotterie, Scoreboard, Tablist, Bossbar, Actionbar und Lizenzsystem.
 | Doppelsprung | Wolke | Breeze-Sound + Gust-Partikel |
 | Speicher | nur MySQL | MySQL **oder** lokal SQLite; Coins werden als Differenz gespeichert (mehrere Lobbys gleichzeitig sicher) |
 
+## Neu in 2.1
+
+- **Freunde** (`/friend`, `/f`): Anfragen mit Klick-Buttons, Online-Status über alle Lobbys, Nachspringen, Nachrichten, Join/Quit-Benachrichtigung, Limit (Premium mehr)
+- **Party** (`/party`, `/p`): Einladen, Leader, Kick, Party-Chat – Mitglieder **folgen dem Leader** automatisch auf andere Server
+- **Clans** (`/clan`): Gründen gegen Coins, Tag `[#TAG]` in Tab, über dem Kopf & im Scoreboard, Rollen (Leader/Moderator/Mitglied), Clan-Chat
+- **Social-Menü** (Hotbar-Kopf): Freunde, Anfragen, Party, Clan & Einstellungen per Klick
+- **CoinAPI** für eigene Plugins (siehe unten) + `CoinsChangeEvent`
+- **Ressourcenpaket** mit eigenen Icons (Coin, Uhr, Clan, Freunde …) – wird vom Plugin **selbst gehostet**, kein externer Webspace nötig
+- **Lobby-Switcher** (`/lobbyswitcher`) mit Live-Spielerzahlen aller Lobbys
+- **Jump-Pads**, **Login-Streak** bei der täglichen Belohnung, **Auto-Broadcast**, Speed in der Lobby
+- **PlaceholderAPI**: `%lobbysystem_coins%`, `_clan_tag`, `_friends_online`, `_rank`, `_streak` …
+
+> Freunde/Party/Clan laufen über MySQL – alle Lobbys müssen dieselbe Datenbank nutzen und in `proxyServerName`
+> ihren Namen aus der BungeeCord/Velocity-Config eintragen (z. B. `Lobby-1`). Nachrichten an Spieler auf anderen
+> Servern gehen über den Proxy (BungeeCord-Channel, funktioniert auch mit Velocity).
+
 ## Commands
 
 | Befehl | Beschreibung |
@@ -31,6 +47,10 @@ Lotterie, Scoreboard, Tablist, Bossbar, Actionbar und Lizenzsystem.
 | `/setwarp <Name>` · `/setwarp remove <Name>` · `/setwarp list` | Warp-Punkte für den Navigator |
 | `/warp <Name>` · `/spawn` | Teleport zu Warp / Spawn |
 | `/tpcoord <x> <y> <z> [Welt] [Yaw] [Pitch]` | Teleport zu Koordinaten (`~` relativ möglich) |
+| `/friend add\|remove\|accept\|deny\|list\|requests\|jump\|msg\|toggle` | Freundesystem (ohne Argument: Menü) |
+| `/party invite\|accept\|deny\|leave\|kick\|promote\|disband\|list\|warp\|chat` | Party-System |
+| `/clan create <Name> <Tag>\|invite\|accept\|deny\|leave\|kick\|promote\|demote\|disband\|info\|chat` | Clan-System |
+| `/lobbyswitcher` | Lobby wechseln |
 | `/lobbysystem reload\|info` | Konfiguration neu laden / Infos |
 | `/license create\|list\|verify` | **Nur SujucDerBreite** – Lizenzen verwalten |
 
@@ -80,6 +100,40 @@ Slot;MATERIAL;Ziel;Name;Lore
 
 Beispiel: `"12;IRON_AXE;connect:CityBuild-1;<dark_gray>»</dark_gray> <dark_green>ᴄɪᴛʏʙᴜɪʟᴅ;<gray>Klicke zum Joinen"`
 (alte Schreibweise `§7» §2CityBuild` funktioniert auch).
+
+## Ressourcenpaket
+
+```json
+"resourcepack": {
+  "enabled": true,
+  "required": false,
+  "url": "",
+  "selfHost": { "port": 8165, "publicHost": "play.deinserver.de" },
+  "icons": true
+}
+```
+
+- `url` leer → das Plugin hostet `plugins/LobbySystem/resourcepack/LobbyPack.zip` selbst (Port muss offen sein).
+- Eigenes Pack? ZIP ersetzen + `/lobbysystem reload` – SHA-1 wird automatisch berechnet.
+- Icons in allen Texten: `{i_coin} {i_clock} {i_rank} {i_clan} {i_friends} {i_party} {i_heart} {i_ticket} {i_online} {i_offline} {i_gem}`
+  (ohne Pack automatisch Unicode-Ersatz). Quellen & Generator: `resourcepack/`, `tools/generate_pack.py`.
+
+## CoinAPI (für Entwickler)
+
+```java
+CoinAPI coins = LobbySystemAPI.coins();                 // oder Bukkit.getServicesManager().load(CoinAPI.class)
+coins.addCoins(player.getUniqueId(), 100, "bedwars_win");
+coins.removeCoins(uuid, 500, "shop").thenAccept(ok -> { /* true = genug Coins */ });
+coins.getCoins(uuid).thenAccept(amount -> ...);         // funktioniert auch offline
+coins.transfer(from, to, 50, "pay");
+
+@EventHandler
+public void onCoins(CoinsChangeEvent e) { e.getUniqueId(); e.getDifference(); e.getReason(); }
+
+LobbySystemAPI.social().clanTag(uuid);                  // Optional<String>
+```
+
+In `plugin.yml` deines Plugins: `depend: [LobbySystem]`, JAR als `provided`-Dependency einbinden.
 
 ## Lizenzsystem
 
