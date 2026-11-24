@@ -90,6 +90,13 @@ public final class LobbyListener implements Listener {
 
         plugin.initPlayer(player, true);
         plugin.lobby().welcome(player);
+        plugin.pack().send(player);
+        plugin.data().presence(player.getUniqueId(), c().cfg().proxyServerName);
+        plugin.clans().refresh(player.getUniqueId());
+        // kurz warten, damit der Online-Status in der DB steht
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) plugin.friends().announce(player, true);
+        }, 40L);
     }
 
     @EventHandler
@@ -103,6 +110,10 @@ public final class LobbyListener implements Listener {
         plugin.sidebar().remove(player);
         plugin.lobby().quit(player);
         jumpCooldown.remove(player.getUniqueId());
+        plugin.data().offline(player.getUniqueId(), c().cfg().proxyServerName);
+        plugin.friends().announce(player, false);
+        plugin.friends().forget(player.getUniqueId());
+        plugin.clans().forget(player.getUniqueId());
         plugin.data().unload(player.getUniqueId());
     }
 
@@ -117,6 +128,10 @@ public final class LobbyListener implements Listener {
             return;
         }
         Action a = event.getAction();
+        if (a == Action.PHYSICAL && event.getClickedBlock() != null && jumpPad(player, event.getClickedBlock())) {
+            event.setCancelled(true);
+            return;
+        }
         // Kein Treten auf Farmland, kein Öffnen von Kisten/Türen etc.
         if (a == Action.PHYSICAL || (a == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null
                 && event.getClickedBlock().getType().isInteractable())) {
@@ -142,10 +157,31 @@ public final class LobbyListener implements Listener {
             case "lottery" -> new LotteryMenu(plugin, player).open();
             case "extras" -> new CosmeticsMenu(plugin, player, CosmeticsMenu.lastCategory(player)).open();
             case "profile" -> new ProfileMenu(plugin, player).open();
+            case "friends" -> de.crafterteam.lobbysystem.gui.SocialMenu.open(plugin, player, de.crafterteam.lobbysystem.gui.SocialMenu.Tab.FRIENDS);
+            case "lobbyswitcher" -> de.crafterteam.lobbysystem.gui.LobbySwitcherMenu.open(plugin, player);
             case "gadget" -> new CosmeticsMenu(plugin, player, de.crafterteam.lobbysystem.cosmetics.Cosmetic.Category.GADGET).open();
             default -> {
             }
         }
+    }
+
+    private final Map<UUID, Long> padCooldown = new HashMap<>();
+
+    private boolean jumpPad(Player player, org.bukkit.block.Block plate) {
+        PluginConfig.JumpPads jp = c().cfg().jumpPads;
+        if (!jp.enabled || !c().has(player, "jumppad")) return false;
+        if (!plate.getType().name().equalsIgnoreCase(jp.plate)) return false;
+        if (jp.blockBelow != null && !jp.blockBelow.isBlank()
+                && !plate.getRelative(org.bukkit.block.BlockFace.DOWN).getType().name().equalsIgnoreCase(jp.blockBelow)) return false;
+        long now = System.currentTimeMillis();
+        if (padCooldown.getOrDefault(player.getUniqueId(), 0L) > now) return true;
+        padCooldown.put(player.getUniqueId(), now + 600);
+        Vector v = player.getLocation().getDirection().setY(0);
+        if (v.lengthSquared() > 1.0E-4) v.normalize();
+        player.setVelocity(v.multiply(jp.forward).setY(jp.upward));
+        player.playSound(player.getLocation(), Sound.ENTITY_WIND_CHARGE_WIND_BURST, 0.9f, 1.2f);
+        player.getWorld().spawnParticle(Particle.GUST_EMITTER_SMALL, plate.getLocation().add(0.5, 0.2, 0.5), 1);
+        return true;
     }
 
     private void toggleSilent(Player player) {

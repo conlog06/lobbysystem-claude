@@ -63,6 +63,8 @@ public final class PlayerDataManager {
                     data.loadSettings(rs.getString("settings"));
                     data.loadSelected(rs.getString("selected"));
                     data.loadOwned(rs.getString("owned"));
+                    data.streak(rs.getInt("streak"));
+                    data.loadFriendSettings(rs.getString("friend_settings"));
                 } else {
                     try (PreparedStatement ins = con.prepareStatement(
                             "insert into ls_players (uuid, name, settings, selected, owned) values (?, ?, ?, '', '')")) {
@@ -106,7 +108,7 @@ public final class PlayerDataManager {
     private void write(Connection con, PlayerData d, long[] deltas, long playtime, long absoluteCoins) throws SQLException {
         String coinsSql = deltas[2] == 1 ? "coins = ?" : "coins = coins + ?";
         try (PreparedStatement ps = con.prepareStatement("update ls_players set name = ?, " + coinsSql
-                + ", lose = lose + ?, playtime = playtime + ?, last_daily = ?, last_premium = ?, settings = ?, selected = ?, owned = ? where uuid = ?")) {
+                + ", lose = lose + ?, playtime = playtime + ?, last_daily = ?, last_premium = ?, settings = ?, selected = ?, owned = ?, streak = ?, friend_settings = ? where uuid = ?")) {
             ps.setString(1, d.name());
             ps.setLong(2, deltas[2] == 1 ? absoluteCoins : deltas[0]);
             ps.setLong(3, deltas[1]);
@@ -116,7 +118,9 @@ public final class PlayerDataManager {
             ps.setString(7, d.settingsString());
             ps.setString(8, d.selectedString());
             ps.setString(9, d.ownedString());
-            ps.setString(10, d.uuid().toString());
+            ps.setInt(10, d.streak());
+            ps.setString(11, d.friendSettingsString());
+            ps.setString(12, d.uuid().toString());
             if (ps.executeUpdate() == 0) {
                 try (PreparedStatement ins = con.prepareStatement("insert into ls_players "
                         + "(uuid, name, coins, lose, playtime, last_daily, last_premium, settings, selected, owned) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
@@ -158,6 +162,89 @@ public final class PlayerDataManager {
     // ---------------------------------------------------------------- Offline-Zugriff (Coins-Befehl)
 
     public record OfflineCoins(String name, long coins) {
+    }
+
+    /** Spieler-Profil aus der Datenbank (für Freunde, Party, Clan). */
+    public record Profile(UUID uuid, String name, String server, long lastSeen, String friendSettings) {
+        public boolean online() {
+            return server != null && !server.isEmpty();
+        }
+
+        /** Einstellung aus friend_settings ("req", "party", "notify") – Standard: an */
+        public boolean setting(String key) {
+            return friendSettings == null || !friendSettings.contains(key + "=0");
+        }
+    }
+
+    private static Profile profile(ResultSet rs) throws SQLException {
+        return new Profile(UUID.fromString(rs.getString("uuid")), rs.getString("name"),
+                rs.getString("online_server"), rs.getLong("last_seen"), rs.getString("friend_settings"));
+    }
+
+    public CompletableFuture<Optional<Profile>> lookup(String name) {
+        return db.submit(con -> {
+            try (PreparedStatement ps = con.prepareStatement(
+                    "select p.uuid, p.name, case when s.updated > ? then p.online_server else '' end as online_server, p.last_seen, p.friend_settings "
+                            + "from ls_players p left join ls_servers s on s.name = p.online_server where lower(p.name) = lower(?)")) {
+                ps.setLong(1, System.currentTimeMillis() - 45_000L);
+                ps.setString(2, name);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() ? Optional.of(profile(rs)) : Optional.<Profile>empty();
+                }
+            }
+        });
+    }
+
+    /** Synchron im DB-Thread nutzbar (innerhalb von db.submit). */
+    public static Map<UUID, Profile> profiles(Connection con, Collection<UUID> ids) throws SQLException {
+        Map<UUID, Profile> out = new java.util.LinkedHashMap<>();
+        if (ids.isEmpty()) return out;
+        String in = String.join(",", java.util.Collections.nCopies(ids.size(), "?"));
+        try (PreparedStatement ps = con.prepareStatement(
+                "select p.uuid, p.name, case when s.updated > ? then p.online_server else '' end as online_server, p.last_seen, p.friend_settings "
+                        + "from ls_players p left join ls_servers s on s.name = p.online_server where p.uuid in (" + in + ")")) {
+            ps.setLong(1, System.currentTimeMillis() - 45_000L);
+            int i = 2;
+            for (UUID id : ids) ps.setString(i++, id.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Profile p = profile(rs);
+                    out.put(p.uuid(), p);
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Online-Status für Freunde (server = Proxy-Name der Lobby, leer = offline). */
+    public void presence(UUID uuid, String server) {
+        db.submit(con -> {
+            try (PreparedStatement ps = con.prepareStatement("update ls_players set online_server = ?, last_seen = ? where uuid = ?")) {
+                ps.setString(1, server == null ? "" : server);
+                ps.setLong(2, System.currentTimeMillis());
+                ps.setString(3, uuid.toString());
+                ps.executeUpdate();
+            }
+            return null;
+        });
+    }
+
+    /** Offline setzen – aber nur, wenn der Spieler nicht schon auf einer anderen Lobby eingetragen ist. */
+    public void offline(UUID uuid, String thisServer) {
+        db.submit(con -> {
+            try (PreparedStatement ps = con.prepareStatement(
+                    "update ls_players set online_server = '', last_seen = ? where uuid = ? and online_server = ?")) {
+                ps.setLong(1, System.currentTimeMillis());
+                ps.setString(2, uuid.toString());
+                ps.setString(3, thisServer);
+                ps.executeUpdate();
+            }
+            return null;
+        });
+    }
+
+    public Database db() {
+        return db;
     }
 
     public CompletableFuture<Optional<OfflineCoins>> offlineCoins(String name) {

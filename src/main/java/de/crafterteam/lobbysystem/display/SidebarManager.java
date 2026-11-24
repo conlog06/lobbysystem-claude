@@ -125,7 +125,16 @@ public final class SidebarManager {
         ConfigManager.Rank rank = rank(player);
         PluginConfig.ActionBar ab = c().cfg().actionbar;
         ZonedDateTime now = ZonedDateTime.now(zone(ab.timezone));
+        var clan = plugin.clans().cached(player.getUniqueId()).orElse(null);
+        int[] friends = plugin.friends().count(player.getUniqueId());
         return ConfigManager.map(
+                "clan", clan == null ? "<gray>-" : "<white>" + Text.escape(clan.name()),
+                "clan_tag", clan == null ? "" : "<dark_gray>[</dark_gray><yellow>#" + clan.tag() + "</yellow><dark_gray>]</dark_gray>",
+                "clan_members", clan == null ? "<gray>Kein Clan" : "<green>" + clan.members().size() + "<dark_gray>/</dark_gray><green>" + c().cfg().social.clanMax,
+                "friends_online", Integer.toString(friends[0]),
+                "friends_total", Integer.toString(friends[1]),
+                "streak", Integer.toString(data.streak()),
+                "proxy_server", c().cfg().proxyServerName,
                 "name", player.getName(),
                 "coins", Text.formatNumber(data.coins()),
                 "lose", Integer.toString(data.lose()),
@@ -159,19 +168,25 @@ public final class SidebarManager {
             Scoreboard board = e.getValue();
             for (Player target : Bukkit.getOnlinePlayers()) {
                 ConfigManager.Rank rank = rank(target);
-                String key = String.format("%03d", Math.max(0, Math.min(999, rank.priority)))
-                        + rank.name.replaceAll("[^A-Za-z0-9]", "");
-                String teamName = key.length() > 16 ? key.substring(0, 16) : key;
+                var clan = plugin.clans().cached(target.getUniqueId()).orElse(null);
+                String clanTag = clan == null ? "" : clan.tag();
+                String rankKey = rank.name.replaceAll("[^A-Za-z0-9]", "");
+                if (rankKey.length() > 6) rankKey = rankKey.substring(0, 6);
+                String teamName = String.format("%03d", Math.max(0, Math.min(999, rank.priority))) + rankKey + clanTag;
                 Team team = board.getTeam(teamName);
                 if (team == null) {
                     team = board.registerNewTeam(teamName);
                 }
                 team.prefix(Text.parse(rank.prefix));
+                team.suffix(clan == null ? net.kyori.adventure.text.Component.empty()
+                        : Text.parse(c().cfg().social.clanSuffix, ConfigManager.map("tag", clan.tag())));
                 team.color(color(rank.color));
                 Team current = board.getEntryTeam(target.getName());
                 if (current != null && !current.equals(team)) current.removeEntry(target.getName());
                 if (!team.hasEntry(target.getName())) team.addEntry(target.getName());
             }
+            // leere Teams aufräumen
+            for (Team t : new java.util.ArrayList<>(board.getTeams())) if (t.getEntries().isEmpty()) t.unregister();
         }
     }
 

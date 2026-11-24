@@ -64,6 +64,10 @@ public final class LobbyCommands implements TabExecutor {
                 if (p != null) plugin.lobby().teleportSpawn(p, true);
             }
             case "tpcoord" -> tpCoord(sender, args);
+            case "lobbyswitcher" -> {
+                Player p = player(sender);
+                if (p != null) de.crafterteam.lobbysystem.gui.LobbySwitcherMenu.open(plugin, p);
+            }
             case "lobbysystem" -> admin(sender, args);
             default -> {
                 return false;
@@ -141,12 +145,11 @@ public final class LobbyCommands implements TabExecutor {
         if (online != null) {
             PlayerData d = plugin.data().get(online);
             switch (mode) {
-                case "add" -> d.addCoins(amount);
-                case "remove" -> d.addCoins(-amount);
-                default -> d.coins(amount);
+                case "add" -> plugin.coins().addCoins(online.getUniqueId(), amount, "command");
+                case "remove" -> plugin.coins().change(online.getUniqueId(), -amount, "command");
+                default -> plugin.coins().setCoins(online.getUniqueId(), amount, "command");
             }
             plugin.data().save(d);
-            plugin.lobby().giveHotbar(online);
             c().send(sender, key, "name", online.getName(), "amount", Text.formatNumber(amount));
             return;
         }

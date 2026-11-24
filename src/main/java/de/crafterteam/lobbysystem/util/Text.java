@@ -32,8 +32,22 @@ public final class Text {
         return s.indexOf('§') >= 0 || AMP_CODE.matcher(s).find();
     }
 
+    /** Icon-Platzhalter {i_coin}, {i_clock} … → Glyphen aus dem Ressourcenpaket oder Unicode-Fallback. */
+    private static volatile Map<String, String> icons = Map.of();
+
+    public static void icons(Map<String, String> map) {
+        icons = Map.copyOf(map);
+    }
+
+    private static String icons(String s) {
+        if (s.indexOf("{i_") < 0) return s;
+        for (Map.Entry<String, String> e : icons.entrySet()) s = s.replace("{" + e.getKey() + "}", e.getValue());
+        return s;
+    }
+
     public static Component parse(String s) {
         if (s == null || s.isEmpty()) return Component.empty();
+        s = icons(s);
         if (isLegacy(s)) {
             return LEGACY.deserialize(AMP_CODE.matcher(s).replaceAll("§$1"));
         }

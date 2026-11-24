@@ -19,6 +19,11 @@ public class PluginConfig {
 
     public String serverName = "ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ";
 
+    /** Name DIESES Servers im BungeeCord/Velocity (für Freunde-Status, Lobby-Switcher, Party-Nachziehen). */
+    public String proxyServerName = "Lobby-1";
+    /** Server, die im Lobby-Switcher erscheinen, beginnen mit diesem Namen. */
+    public String lobbyPrefix = "Lobby";
+
     /** Gesamt-Permission = prefix + "." + suffix_xyz (leerer Suffix = jeder darf). */
     public Map<String, String> permissions = defaultPermissions();
 
@@ -40,6 +45,11 @@ public class PluginConfig {
     public DoubleJump doubleJump = new DoubleJump();
     public Protection protection = new Protection();
     public Cosmetics cosmetics = new Cosmetics();
+    public Social social = new Social();
+    public ResourcePack resourcepack = new ResourcePack();
+    public JumpPads jumpPads = new JumpPads();
+    public Broadcast broadcast = new Broadcast();
+    public Speed speed = new Speed();
 
     public Map<String, String> messages = defaultMessages();
 
@@ -78,18 +88,20 @@ public class PluginConfig {
         public boolean enabled = true;
         public String title = "<gradient:#ffb347:#ffcc33><b>ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ</b></gradient>";
         public List<String> lines = new ArrayList<>(List.of(
-                "<dark_gray><st>                    </st>",
-                "<dark_gray>●</dark_gray> <yellow>⭐</yellow> <gray>ᴄᴏɪɴꜱ",
+                "<dark_gray>●</dark_gray> {i_coin} <gray>ᴄᴏɪɴꜱ",
                 "<dark_gray>↪</dark_gray> <green>{coins}",
                 "",
-                "<dark_gray>●</dark_gray> <aqua>⌚</aqua> <gray>ꜱᴘɪᴇʟᴢᴇɪᴛ",
+                "<dark_gray>●</dark_gray> {i_clock} <gray>ꜱᴘɪᴇʟᴢᴇɪᴛ",
                 "<dark_gray>↪</dark_gray> <yellow>{playtime}",
                 "",
-                "<dark_gray>●</dark_gray> <light_purple>✦</light_purple> <gray>ʀᴀɴɢ",
+                "<dark_gray>●</dark_gray> {i_rank} <gray>ʀᴀɴɢ",
                 "<dark_gray>↪</dark_gray> {rank}",
                 "",
-                "<dark_gray>●</dark_gray> <red>❤</red> <gray>ᴏɴʟɪɴᴇ",
-                "<dark_gray>↪</dark_gray> <white>{online}<dark_gray>/</dark_gray>{max}",
+                "<dark_gray>●</dark_gray> {i_clan} <gray>ᴄʟᴀɴ {clan_tag}",
+                "<dark_gray>↪</dark_gray> {clan_members}",
+                "",
+                "<dark_gray>●</dark_gray> {i_friends} <gray>ꜰʀᴇᴜɴᴅᴇ",
+                "<dark_gray>↪</dark_gray> <green>{friends_online}</green> <gray>online",
                 "<dark_gray><st>                    </st>"
         ));
     }
@@ -143,6 +155,9 @@ public class PluginConfig {
         public int normalLose = 1;
         public int premiumCoins = 400;
         public int premiumLose = 2;
+        /** Bonus-Coins pro Tag in Folge (Streak), maximal streakMax Tage */
+        public int streakBonus = 25;
+        public int streakMax = 7;
         public String hologram = "<gradient:#b06ab3:#4568dc><b>ᴛäɢʟɪᴄʜᴇ ʙᴇʟᴏʜɴᴜɴɢ</b></gradient>\n<gray>Rechtsklick zum Öffnen";
     }
 
@@ -151,6 +166,75 @@ public class PluginConfig {
         public List<LotteryReward> rewards = new ArrayList<>(List.of(
                 new LotteryReward(25, 35), new LotteryReward(50, 30), new LotteryReward(100, 18),
                 new LotteryReward(250, 10), new LotteryReward(500, 5), new LotteryReward(2500, 2)));
+    }
+
+    public static class Social {
+        public boolean friends = true;
+        public boolean party = true;
+        public boolean clans = true;
+        public int friendsMax = 50;
+        public int friendsMaxPremium = 150;
+        public int partyMax = 8;
+        public int clanMax = 30;
+        public long clanCreateCost = 5000;
+        public int clanTagMin = 2;
+        public int clanTagMax = 5;
+        public int clanNameMax = 16;
+        public int inviteSeconds = 300;
+        /** Party-Mitglieder automatisch mitnehmen, wenn der Leader über den Navigator den Server wechselt */
+        public boolean partyFollow = true;
+        public String friendChatFormat = "<dark_aqua>ꜰʀᴇᴜɴᴅᴇ</dark_aqua> <dark_gray>»</dark_gray> <white>{name}</white><dark_gray>:</dark_gray> <gray>{message}";
+        public String partyChatFormat = "<light_purple>ᴘᴀʀᴛʏ</light_purple> <dark_gray>»</dark_gray> <white>{name}</white><dark_gray>:</dark_gray> <gray>{message}";
+        public String clanChatFormat = "<gold>ᴄʟᴀɴ</gold> <dark_gray>[</dark_gray><yellow>{tag}</yellow><dark_gray>]</dark_gray> <white>{name}</white><dark_gray>:</dark_gray> <gray>{message}";
+        /** Clan-Tag hinter dem Namen in Tab & über dem Kopf */
+        public String clanSuffix = " <dark_gray>[</dark_gray><yellow>#{tag}</yellow><dark_gray>]</dark_gray>";
+    }
+
+    public static class ResourcePack {
+        public boolean enabled = false;
+        /** Spieler müssen das Pack annehmen, sonst werden sie gekickt */
+        public boolean required = false;
+        public String prompt = "<gradient:#00d2ff:#3a7bd5>Lobby-Ressourcenpaket</gradient>\n<gray>Für Icons & Sounds – bitte annehmen!";
+        public String kickMessage = "<red>Bitte nimm das Ressourcenpaket an, um die Lobby zu betreten.";
+        /** Eigenes Pack: externe URL. Leer = das mitgelieferte Pack wird vom Plugin selbst gehostet */
+        public String url = "";
+        /** SHA-1 der externen URL (leer = wird automatisch berechnet) */
+        public String sha1 = "";
+        public SelfHost selfHost = new SelfHost();
+        /** Eigene Icons (Coin, Uhr, Clan …) im Scoreboard/Tab nutzen – nur sinnvoll mit Pack */
+        public boolean icons = true;
+    }
+
+    public static class SelfHost {
+        public int port = 8165;
+        /** Öffentliche IP/Domain, über die Spieler den Server erreichen (z. B. play.crafterteam.de) */
+        public String publicHost = "";
+    }
+
+    public static class JumpPads {
+        public boolean enabled = true;
+        /** Druckplatte, die als Jump-Pad dient */
+        public String plate = "HEAVY_WEIGHTED_PRESSURE_PLATE";
+        /** Optional: Block darunter (leer = egal) */
+        public String blockBelow = "REDSTONE_BLOCK";
+        public double forward = 2.6;
+        public double upward = 1.1;
+    }
+
+    public static class Broadcast {
+        public boolean enabled = true;
+        public int intervalSeconds = 240;
+        public List<String> messages = new ArrayList<>(List.of(
+                "<gray>Füge Freunde mit <aqua>/friend add <Name></aqua> <gray>hinzu!",
+                "<gray>Gründe deinen eigenen Clan mit <gold>/clan create <Name> <Tag></gold><gray>!",
+                "<gray>Spiele mit Freunden zusammen: <light_purple>/party invite <Name>",
+                "<gray>Hol dir jeden Tag deine Belohnung – mit <yellow>Streak-Bonus</yellow><gray>!"
+        ));
+    }
+
+    public static class Speed {
+        /** Leichter Speed-Effekt in der Lobby (0 = aus) */
+        public int level = 1;
     }
 
     public static class LotteryReward {
@@ -272,6 +356,11 @@ public class PluginConfig {
         m.put("suffix_cosmetics_all", "cosmetics.all");
         m.put("suffix_cosmetic", "cosmetics.");
         m.put("suffix_bypass", "bypass");
+        m.put("suffix_friends_premium", "friends.premium");
+        m.put("suffix_clan_create", "");
+        m.put("suffix_party", "");
+        m.put("suffix_jumppad", "");
+        m.put("suffix_broadcast_bypass", "broadcast.bypass");
         return m;
     }
 
@@ -297,6 +386,10 @@ public class PluginConfig {
                 "<dark_gray>»</dark_gray> <gray>Status: {silent}"));
         m.put("gadget", new HotbarItem(4, "BARRIER", "<dark_gray>-●</dark_gray> <red>Kein Gadget ausgewählt",
                 "<dark_gray>»</dark_gray> <gray>Wähle eines über die <light_purple>Extras</light_purple>"));
+        m.put("lobbyswitcher", new HotbarItem(5, "END_CRYSTAL", "<dark_gray>-●</dark_gray> <aqua><b>ʟᴏʙʙʏ-ꜱᴡɪᴛᴄʜᴇʀ</b>",
+                "<dark_gray>»</dark_gray> <gray>Wechsle die Lobby"));
+        m.put("friends", new HotbarItem(3, "PLAYER_HEAD", "<dark_gray>-●</dark_gray> <dark_aqua><b>ꜰʀᴇᴜɴᴅᴇ</b>",
+                "<dark_gray>»</dark_gray> <gray>Freunde, Party & Clan"));
         m.put("lottery", new HotbarItem(6, "NAME_TAG", "<dark_gray>-●</dark_gray> <yellow><b>ʟᴏᴛᴛᴇʀɪᴇ</b>",
                 "<dark_gray>»</dark_gray> <gray>Du hast <yellow>{lose}</yellow> <gray>Lose"));
         m.put("extras", new HotbarItem(7, "NETHER_STAR", "<dark_gray>-●</dark_gray> <light_purple><b>ᴇxᴛʀᴀꜱ</b>",
@@ -352,6 +445,78 @@ public class PluginConfig {
         m.put("setting_changed", "<gray>{setting} <dark_gray>»</dark_gray> {state}");
         m.put("license_owner_only", "<red>Lizenzen kann nur der Owner <white>SujucDerBreite</white> <red>verwalten.");
         m.put("license_created", "<green>Lizenz für <white>{holder}</white> <green>erstellt <gray>(Ablauf: {expires})<green>. <yellow><click:copy_to_clipboard:'{raw_key}'><hover:show_text:'Klicke zum Kopieren'>[Klicke zum Kopieren]</hover></click>");
+        // ---- Freunde
+        m.put("friend_prefix", "<dark_aqua><b>ꜰʀᴇᴜɴᴅᴇ</b></dark_aqua> <dark_gray>»</dark_gray> <gray>");
+        m.put("friend_help", "<gray>/friend <aqua>add|remove|accept|deny|list|requests|jump|msg|toggle</aqua> <dark_gray>(/f)");
+        m.put("friend_request_sent", "<gray>Freundschaftsanfrage an <white>{name}</white> <gray>gesendet.");
+        m.put("friend_request_received", "<white>{name}</white> <gray>möchte dein Freund sein. <green><click:run_command:'/friend accept {name}'><hover:show_text:'Annehmen'>[Annehmen]</hover></click></green> <red><click:run_command:'/friend deny {name}'><hover:show_text:'Ablehnen'>[Ablehnen]</hover></click></red>");
+        m.put("friend_added", "<green>Du bist jetzt mit <white>{name}</white> <green>befreundet.");
+        m.put("friend_removed", "<gray>Du bist nicht mehr mit <white>{name}</white> <gray>befreundet.");
+        m.put("friend_denied", "<gray>Anfrage von <white>{name}</white> <gray>abgelehnt.");
+        m.put("friend_already", "<red>Ihr seid bereits befreundet.");
+        m.put("friend_not_friends", "<red>Du bist nicht mit <white>{name}</white> <red>befreundet.");
+        m.put("friend_no_request", "<red>Keine Anfrage von <white>{name}</white><red>.");
+        m.put("friend_request_pending", "<red>Du hast <white>{name}</white> <red>bereits eine Anfrage geschickt.");
+        m.put("friend_self", "<red>Du kannst dich nicht selbst hinzufügen.");
+        m.put("friend_limit", "<red>Du hast die maximale Anzahl an Freunden erreicht ({max}).");
+        m.put("friend_requests_disabled", "<red><white>{name}</white> <red>nimmt keine Anfragen an.");
+        m.put("friend_online", "<white>{name}</white> <gray>ist jetzt <green>online</green><gray>.");
+        m.put("friend_offline", "<white>{name}</white> <gray>ist jetzt <red>offline</red><gray>.");
+        m.put("friend_list_header", "<gray>Deine Freunde <dark_gray>(<white>{count}</white>)</dark_gray>:");
+        m.put("friend_list_entry", "<dark_gray> » </dark_gray>{status} <white>{name}</white> <dark_gray>|</dark_gray> <gray>{where}");
+        m.put("friend_requests_header", "<gray>Offene Anfragen <dark_gray>(<white>{count}</white>)</dark_gray>:");
+        m.put("friend_not_online", "<red><white>{name}</white> <red>ist nicht online.");
+        m.put("friend_jump", "<gray>Du springst zu <white>{name}</white><gray>...");
+        m.put("friend_toggle", "<gray>Freundschaftsanfragen: {state}");
+        // ---- Party
+        m.put("party_prefix", "<light_purple><b>ᴘᴀʀᴛʏ</b></light_purple> <dark_gray>»</dark_gray> <gray>");
+        m.put("party_help", "<gray>/party <light_purple>invite|accept|deny|leave|kick|promote|disband|list|chat|warp</light_purple> <dark_gray>(/p)");
+        m.put("party_invite_sent", "<gray>Du hast <white>{name}</white> <gray>in die Party eingeladen.");
+        m.put("party_invite_received", "<white>{name}</white> <gray>lädt dich in die Party ein. <green><click:run_command:'/party accept {name}'><hover:show_text:'Beitreten'>[Beitreten]</hover></click></green> <red><click:run_command:'/party deny {name}'><hover:show_text:'Ablehnen'>[Ablehnen]</hover></click></red>");
+        m.put("party_joined", "<white>{name}</white> <green>ist der Party beigetreten.");
+        m.put("party_left", "<white>{name}</white> <gray>hat die Party verlassen.");
+        m.put("party_kicked", "<white>{name}</white> <red>wurde aus der Party geworfen.");
+        m.put("party_promoted", "<white>{name}</white> <gray>ist jetzt <gold>Party-Leader</gold><gray>.");
+        m.put("party_disbanded", "<red>Die Party wurde aufgelöst.");
+        m.put("party_not_in", "<red>Du bist in keiner Party.");
+        m.put("party_already_in", "<red>Du bist bereits in einer Party.");
+        m.put("party_target_in_party", "<red><white>{name}</white> <red>ist bereits in einer Party.");
+        m.put("party_not_leader", "<red>Nur der Party-Leader kann das.");
+        m.put("party_full", "<red>Die Party ist voll ({max}).");
+        m.put("party_no_invite", "<red>Du hast keine Einladung von <white>{name}</white><red>.");
+        m.put("party_not_member", "<red><white>{name}</white> <red>ist nicht in deiner Party.");
+        m.put("party_invites_disabled", "<red><white>{name}</white> <red>nimmt keine Party-Einladungen an.");
+        m.put("party_list_header", "<gray>Party <dark_gray>(<white>{count}</white><dark_gray>/</dark_gray><white>{max}</white>)</dark_gray>:");
+        m.put("party_warp", "<gray>Die Party folgt dir nach <aqua>{server}</aqua><gray>.");
+        // ---- Clan
+        m.put("clan_prefix", "<gold><b>ᴄʟᴀɴ</b></gold> <dark_gray>»</dark_gray> <gray>");
+        m.put("clan_help", "<gray>/clan <gold>create|invite|accept|deny|leave|kick|promote|demote|disband|info|list|chat</gold>");
+        m.put("clan_created", "<green>Der Clan <white>{name}</white> <dark_gray>[</dark_gray><yellow>{tag}</yellow><dark_gray>]</dark_gray> <green>wurde gegründet.");
+        m.put("clan_cost", "<red>Einen Clan zu gründen kostet <yellow>{cost} Coins</yellow><red>.");
+        m.put("clan_exists", "<red>Ein Clan mit diesem Namen oder Tag existiert bereits.");
+        m.put("clan_invalid_tag", "<red>Der Tag muss {min}–{max} Zeichen lang sein (A–Z, 0–9).");
+        m.put("clan_invalid_name", "<red>Der Name darf max. {max} Zeichen haben (Buchstaben, Zahlen, _).");
+        m.put("clan_already_in", "<red>Du bist bereits in einem Clan.");
+        m.put("clan_not_in", "<red>Du bist in keinem Clan.");
+        m.put("clan_no_rights", "<red>Dazu hast du in deinem Clan keine Rechte.");
+        m.put("clan_invite_sent", "<gray>Du hast <white>{name}</white> <gray>in den Clan eingeladen.");
+        m.put("clan_invite_received", "<gray>Du wurdest in den Clan <white>{clan}</white> <dark_gray>[</dark_gray><yellow>{tag}</yellow><dark_gray>]</dark_gray> <gray>eingeladen. <green><click:run_command:'/clan accept {tag}'><hover:show_text:'Beitreten'>[Beitreten]</hover></click></green> <red><click:run_command:'/clan deny {tag}'><hover:show_text:'Ablehnen'>[Ablehnen]</hover></click></red>");
+        m.put("clan_joined", "<white>{name}</white> <green>ist dem Clan beigetreten.");
+        m.put("clan_left", "<white>{name}</white> <gray>hat den Clan verlassen.");
+        m.put("clan_kicked", "<white>{name}</white> <red>wurde aus dem Clan geworfen.");
+        m.put("clan_role", "<white>{name}</white> <gray>ist jetzt <gold>{role}</gold><gray>.");
+        m.put("clan_disbanded", "<red>Der Clan wurde aufgelöst.");
+        m.put("clan_full", "<red>Der Clan ist voll ({max}).");
+        m.put("clan_no_invite", "<red>Du hast keine Einladung von diesem Clan.");
+        m.put("clan_not_found", "<red>Dieser Clan existiert nicht.");
+        m.put("clan_target_in_clan", "<red><white>{name}</white> <red>ist bereits in einem Clan.");
+        m.put("clan_not_member", "<red><white>{name}</white> <red>ist nicht in deinem Clan.");
+        m.put("clan_owner_leave", "<red>Als Leader musst du den Clan erst übergeben (/clan promote) oder auflösen (/clan disband).");
+        m.put("clan_info", "<white>{clan}</white> <dark_gray>[</dark_gray><yellow>{tag}</yellow><dark_gray>]</dark_gray> <dark_gray>|</dark_gray> <gray>Mitglieder: <white>{count}</white><dark_gray>/</dark_gray><white>{max}</white>");
+        m.put("clan_member_entry", "<dark_gray> » </dark_gray>{status} <white>{name}</white> <dark_gray>|</dark_gray> <gold>{role}");
+        // ---- Sonstiges
+        m.put("lobby_switch_same", "<red>Du bist bereits auf dieser Lobby.");
+        m.put("streak", "<gray>Login-Streak: <gold>{streak} Tage</gold> <dark_gray>(</dark_gray><yellow>+{bonus} Bonus-Coins</yellow><dark_gray>)");
         m.put("state_on", "<green>aktiviert");
         m.put("state_off", "<red>deaktiviert");
         return m;

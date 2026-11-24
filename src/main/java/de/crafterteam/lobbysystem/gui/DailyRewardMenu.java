@@ -30,8 +30,13 @@ public final class DailyRewardMenu extends Menu {
                 plugin.configs().send(player, "reward_cooldown", "time", Text.formatCooldown(normalLeft));
                 return;
             }
+            // Streak: innerhalb von 2× Cooldown wieder abgeholt → +1, sonst Neustart
+            boolean keep = d.lastDaily() > 0 && now - d.lastDaily() < cooldown * 2;
+            d.streak(keep ? Math.min(r.streakMax, d.streak() + 1) : 1);
             d.lastDaily(now);
-            claim(r.normalCoins, r.normalLose);
+            int bonus = Math.max(0, d.streak() - 1) * r.streakBonus;
+            claim(r.normalCoins + bonus, r.normalLose);
+            if (bonus > 0) plugin.configs().send(player, "streak", "streak", Integer.toString(d.streak()), "bonus", Integer.toString(bonus));
         });
 
         boolean premium = plugin.configs().has(player, "premium_reward");
@@ -50,6 +55,10 @@ public final class DailyRewardMenu extends Menu {
             d.lastPremium(now);
             claim(r.premiumCoins, r.premiumLose);
         });
+        int streak = d.streak();
+        set(13, new ItemBuilder(Material.BLAZE_POWDER).name("<dark_gray>»</dark_gray> <gold>Login-Streak: <white>" + streak + " <gray>/ " + r.streakMax)
+                .lore("<dark_gray>↪</dark_gray> <gray>Jeder Tag in Folge bringt <yellow>+" + r.streakBonus + " Coins</yellow>",
+                        "<dark_gray>↪</dark_gray> <gray>Aktueller Bonus: <yellow>+" + Math.max(0, streak) * r.streakBonus + " Coins").glow(streak > 0).build());
         fill(Material.GRAY_STAINED_GLASS_PANE);
     }
 
@@ -57,7 +66,7 @@ public final class DailyRewardMenu extends Menu {
         boolean ready = left <= 0 && allowed;
         ItemBuilder b = new ItemBuilder(ready ? Material.PAPER : Material.MAP)
                 .name("<dark_gray>»</dark_gray> " + name)
-                .lore("<dark_gray>↪</dark_gray> <gold>+" + coins + " Coins</gold> <dark_gray>|</dark_gray> <yellow>+" + lose + " Lose", "");
+                .lore("<dark_gray>↪</dark_gray> {i_coin} <gold>+" + coins + " Coins</gold> <dark_gray>|</dark_gray> {i_ticket} <yellow>+" + lose + " Lose", "");
         if (!allowed) b.lore("<dark_gray>»</dark_gray> <red>Nur für Premium-Spieler");
         else if (left > 0) b.lore("<dark_gray>»</dark_gray> <gray>Wieder verfügbar in <white>" + Text.formatCooldown(left));
         else b.lore("<dark_gray>»</dark_gray> <green>Klicke zum Abholen!");
@@ -66,7 +75,7 @@ public final class DailyRewardMenu extends Menu {
 
     private void claim(int coins, int lose) {
         PlayerData d = plugin.data().get(player);
-        d.addCoins(coins);
+        plugin.coins().change(player.getUniqueId(), coins, "daily_reward");
         d.addLose(lose);
         success();
         player.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, player.getLocation().add(0, 1, 0), 40, 0.4, 0.6, 0.4, 0.3);

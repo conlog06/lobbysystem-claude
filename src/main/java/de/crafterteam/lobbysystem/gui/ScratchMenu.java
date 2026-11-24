@@ -51,7 +51,7 @@ public final class ScratchMenu extends Menu {
         picked = true;
         PlayerData d = plugin.data().get(player);
         int win = prizes[idx];
-        d.addCoins(win);
+        plugin.coins().change(player.getUniqueId(), win, "lottery");
         plugin.configs().send(player, "lottery_win", "coins", Integer.toString(win));
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.4f);
         // Alle Felder aufdecken – das gewählte leuchtet

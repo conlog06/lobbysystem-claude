@@ -1,6 +1,17 @@
 package de.crafterteam.lobbysystem;
 
+import de.crafterteam.lobbysystem.api.CoinAPI;
+import de.crafterteam.lobbysystem.api.LobbySystemAPI;
 import de.crafterteam.lobbysystem.command.LicenseCommand;
+import de.crafterteam.lobbysystem.command.SocialCommands;
+import de.crafterteam.lobbysystem.pack.ResourcePackManager;
+import de.crafterteam.lobbysystem.social.ClanManager;
+import de.crafterteam.lobbysystem.social.FriendManager;
+import de.crafterteam.lobbysystem.social.Messenger;
+import de.crafterteam.lobbysystem.social.PartyManager;
+import de.crafterteam.lobbysystem.social.ServerRegistry;
+import de.crafterteam.lobbysystem.storage.CoinService;
+import org.bukkit.plugin.ServicePriority;
 import de.crafterteam.lobbysystem.command.LobbyCommands;
 import de.crafterteam.lobbysystem.config.ConfigManager;
 import de.crafterteam.lobbysystem.cosmetics.CosmeticManager;
@@ -38,6 +49,13 @@ public final class LobbySystem extends JavaPlugin {
     private BarManager bars;
     private CosmeticManager cosmetics;
     private NpcManager npcs;
+    private CoinService coins;
+    private Messenger messenger;
+    private FriendManager friends;
+    private PartyManager parties;
+    private ClanManager clans;
+    private ServerRegistry servers;
+    private ResourcePackManager pack;
     private boolean started;
 
     @Override
@@ -64,6 +82,14 @@ public final class LobbySystem extends JavaPlugin {
         getLogger().info("Datenbank verbunden: " + (database.isMySql() ? "MySQL" : "SQLite (lokal)"));
 
         data = new PlayerDataManager(this, database);
+        coins = new CoinService(this);
+        messenger = new Messenger(this);
+        friends = new FriendManager(this);
+        parties = new PartyManager(this);
+        clans = new ClanManager(this);
+        servers = new ServerRegistry(this);
+        pack = new ResourcePackManager(this);
+        pack.start();
         lobby = new LobbyManager(this);
         sidebar = new SidebarManager(this);
         bars = new BarManager(this);
@@ -75,21 +101,61 @@ public final class LobbySystem extends JavaPlugin {
         pm.registerEvents(new MenuListener(), this);
         pm.registerEvents(cosmetics, this);
         pm.registerEvents(npcs, this);
+        pm.registerEvents(pack, this);
 
         getServer().getMessenger().registerOutgoingPluginChannel(this, LobbyManager.BUNGEE_CHANNEL);
 
         LobbyCommands commands = new LobbyCommands(this);
-        for (String cmd : new String[]{"build", "lobbycoins", "setreward", "setsettings", "setspawn", "setwarp", "warp", "spawn", "tpcoord", "lobbysystem"}) {
+        for (String cmd : new String[]{"build", "lobbycoins", "setreward", "setsettings", "setspawn", "setwarp", "warp", "spawn", "tpcoord", "lobbysystem", "lobbyswitcher"}) {
             register(cmd, commands);
         }
         register("license", new LicenseCommand(this));
+        SocialCommands social = new SocialCommands(this);
+        for (String cmd : new String[]{"friend", "party", "clan"}) register(cmd, social);
+
+        // ---- API für andere Plugins
+        getServer().getServicesManager().register(CoinAPI.class, coins, this, ServicePriority.Normal);
+        LobbySystemAPI.init(coins, new LobbySystemAPI.SocialAPI() {
+            @Override
+            public java.util.Optional<String> clanTag(java.util.UUID uuid) {
+                return clans.cached(uuid).map(ClanManager.Clan::tag);
+            }
+
+            @Override
+            public java.util.Optional<String> clanName(java.util.UUID uuid) {
+                return clans.cached(uuid).map(ClanManager.Clan::name);
+            }
+
+            @Override
+            public int[] friendCount(java.util.UUID uuid) {
+                return friends.count(uuid);
+            }
+
+            @Override
+            public String rankName(Player player) {
+                return sidebar.rank(player).name;
+            }
+        });
+        if (pm.getPlugin("PlaceholderAPI") != null) {
+            try {
+                new de.crafterteam.lobbysystem.hook.LobbyPlaceholders(this).register();
+                getLogger().info("PlaceholderAPI-Expansion registriert (%lobbysystem_...%).");
+            } catch (Throwable t) {
+                getLogger().warning("PlaceholderAPI-Hook fehlgeschlagen: " + t.getMessage());
+            }
+        }
 
         applyWorldRules();
         startTasks();
 
         // Reload-sicher: bereits verbundene Spieler übernehmen
         for (Player p : Bukkit.getOnlinePlayers()) {
-            data.preloadAsync(p, () -> initPlayer(p, false));
+            data.preloadAsync(p, () -> {
+                initPlayer(p, false);
+                data.presence(p.getUniqueId(), configs.cfg().proxyServerName);
+                clans.refresh(p.getUniqueId());
+                friends.refreshCount(p.getUniqueId());
+            });
         }
         npcs.cleanup();
         started = true;
@@ -125,10 +191,16 @@ public final class LobbySystem extends JavaPlugin {
         Bukkit.getScheduler().runTaskTimer(this, cosmetics::tick, 1L, 1L);
         // alle 2 Sekunden: NPCs prüfen
         Bukkit.getScheduler().runTaskTimer(this, npcs::tick, 40L, 40L);
-        // jede Minute: Spielzeit
+        // jede Minute: Spielzeit, Freunde-Zähler, Clan-Cache, Party-Aufräumen
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (Player p : Bukkit.getOnlinePlayers()) data.get(p).addPlaytime(60);
+            friends.refreshAll();
+            clans.refreshAll();
+            parties.cleanup();
         }, 1200L, 1200L);
+        // alle 10 Sekunden: Server-Heartbeat (Lobby-Switcher, Online-Status)
+        servers.heartbeat();
+        Bukkit.getScheduler().runTaskTimer(this, servers::heartbeat, 200L, 200L);
         // alle 5 Minuten: Autosave
         Bukkit.getScheduler().runTaskTimer(this, data::saveAll, 6000L, 6000L);
     }
@@ -145,6 +217,7 @@ public final class LobbySystem extends JavaPlugin {
         configs.loadAll();
         cosmetics.reload();
         bars.reload();
+        pack.start();
         applyWorldRules();
         npcs.despawnAll();
         npcs.tick();
@@ -170,7 +243,10 @@ public final class LobbySystem extends JavaPlugin {
             cosmetics.clear(p);
             if (lobby.isBuilding(p)) lobby.toggleBuild(p);
         }
+        pack.stop();
+        getServer().getServicesManager().unregisterAll(this);
         data.saveAllBlocking();
+        servers.shutdown();
         database.shutdown();
     }
 
@@ -210,5 +286,33 @@ public final class LobbySystem extends JavaPlugin {
 
     public NpcManager npcs() {
         return npcs;
+    }
+
+    public CoinService coins() {
+        return coins;
+    }
+
+    public Messenger messenger() {
+        return messenger;
+    }
+
+    public FriendManager friends() {
+        return friends;
+    }
+
+    public PartyManager parties() {
+        return parties;
+    }
+
+    public ClanManager clans() {
+        return clans;
+    }
+
+    public ServerRegistry servers() {
+        return servers;
+    }
+
+    public ResourcePackManager pack() {
+        return pack;
     }
 }

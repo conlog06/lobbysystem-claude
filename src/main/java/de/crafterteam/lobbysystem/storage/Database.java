@@ -64,9 +64,57 @@ public final class Database {
                         + "expires bigint not null, "
                         + "created_by varchar(16) not null, "
                         + "license_key text not null)");
+                // ---- Social: Freunde, Party, Clan, Server-Registry
+                st.executeUpdate("create table if not exists ls_friends ("
+                        + "uuid varchar(36) not null, friend varchar(36) not null, since bigint not null, "
+                        + "primary key (uuid, friend))");
+                st.executeUpdate("create table if not exists ls_friend_requests ("
+                        + "sender varchar(36) not null, receiver varchar(36) not null, created bigint not null, "
+                        + "primary key (sender, receiver))");
+                st.executeUpdate("create table if not exists ls_parties ("
+                        + "id varchar(36) not null primary key, leader varchar(36) not null, created bigint not null)");
+                st.executeUpdate("create table if not exists ls_party_members ("
+                        + "uuid varchar(36) not null primary key, party_id varchar(36) not null, joined bigint not null)");
+                st.executeUpdate("create table if not exists ls_party_invites ("
+                        + "party_id varchar(36) not null, uuid varchar(36) not null, expires bigint not null, "
+                        + "primary key (party_id, uuid))");
+                st.executeUpdate("create table if not exists ls_clans ("
+                        + "id varchar(36) not null primary key, name varchar(32) not null, tag varchar(8) not null, "
+                        + "owner varchar(36) not null, created bigint not null)");
+                st.executeUpdate("create table if not exists ls_clan_members ("
+                        + "uuid varchar(36) not null primary key, clan_id varchar(36) not null, role int not null default 0, "
+                        + "joined bigint not null)");
+                st.executeUpdate("create table if not exists ls_clan_invites ("
+                        + "clan_id varchar(36) not null, uuid varchar(36) not null, expires bigint not null, "
+                        + "primary key (clan_id, uuid))");
+                st.executeUpdate("create table if not exists ls_servers ("
+                        + "name varchar(64) not null primary key, online int not null default 0, "
+                        + "max_players int not null default 0, updated bigint not null default 0)");
             }
+            // ---- Spalten-Migration für bestehende Installationen (v2.0 -> v2.1)
+            addColumn(con, "ls_players", "online_server", "varchar(64) not null default ''");
+            addColumn(con, "ls_players", "last_seen", "bigint not null default 0");
+            addColumn(con, "ls_players", "streak", "int not null default 0");
+            addColumn(con, "ls_players", "friend_settings", "varchar(64) not null default ''");
             return null;
         }).get(15, TimeUnit.SECONDS);
+    }
+
+    private static void addColumn(Connection con, String table, String column, String definition) throws SQLException {
+        boolean exists = false;
+        try (java.sql.ResultSet rs = con.getMetaData().getColumns(con.getCatalog(), null, table, null)) {
+            while (rs.next()) {
+                if (column.equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
+                    exists = true;
+                    break;
+                }
+            }
+        }
+        if (!exists) {
+            try (Statement st = con.createStatement()) {
+                st.executeUpdate("alter table " + table + " add column " + column + " " + definition);
+            }
+        }
     }
 
     private Connection connection() throws SQLException {

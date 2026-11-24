@@ -18,6 +18,8 @@ public final class BarManager {
     private BossBar bar;
     private int index;
     private int secondsLeft;
+    private int broadcastSeconds;
+    private int broadcastIndex;
 
     public BarManager(LobbySystem plugin) {
         this.plugin = plugin;
@@ -79,6 +81,16 @@ public final class BarManager {
             updateName();
         }
         bar.progress(Math.max(0f, Math.min(1f, secondsLeft / (float) interval)));
+
+        // Auto-Broadcast im Chat
+        PluginConfig.Broadcast bc = plugin.configs().cfg().broadcast;
+        if (bc.enabled && !bc.messages.isEmpty() && ++broadcastSeconds >= Math.max(10, bc.intervalSeconds)) {
+            broadcastSeconds = 0;
+            var msg = Text.parse(plugin.configs().cfg().prefix + bc.messages.get(broadcastIndex++ % bc.messages.size()));
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (!plugin.data().get(p).silent()) p.sendMessage(msg);
+            }
+        }
 
         PluginConfig.ActionBar ab = plugin.configs().cfg().actionbar;
         if (!ab.enabled) return;

@@ -105,7 +105,7 @@ public final class CosmeticsMenu extends Menu {
                 plugin.configs().send(player, "cosmetic_no_coins", "missing", Text.formatNumber(c.price() - d.coins()));
                 return;
             }
-            d.addCoins(-c.price());
+            plugin.coins().change(player.getUniqueId(), -c.price(), "cosmetic_buy");
             d.addOwned(c.fullId());
             plugin.data().save(d);
             success();

@@ -58,6 +58,9 @@ public final class LobbyManager {
         player.setLevel(0);
         player.setFireTicks(0);
         player.getActivePotionEffects().forEach(e -> player.removePotionEffect(e.getType()));
+        int speed = c().cfg().speed.level;
+        if (speed > 0) player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.SPEED, org.bukkit.potion.PotionEffect.INFINITE_DURATION, speed - 1, false, false, false));
         if (teleport && c().cfg().join.teleportToSpawn) teleportSpawn(player, false);
         giveHotbar(player);
         applyDoubleJump(player, data);
@@ -111,6 +114,7 @@ public final class LobbyManager {
             ItemBuilder b = new ItemBuilder(ItemBuilder.material(h.material, Material.STONE))
                     .name(h.name, ph).lore(h.lore, ph).tag(id).hideFlags();
             if (id.equals("profile")) b.skull(player);
+            if (id.equals("friends") && !c().cfg().social.friends) continue;
             if (id.equals("silentlobby") && data.silent()) b.glow(true);
             inv.setItem(h.slot, b.build());
         }
@@ -209,7 +213,13 @@ public final class LobbyManager {
     }
 
     public void connect(Player player, String server) {
+        connect(player, server, true);
+    }
+
+    /** @param partyFollow true = Party-Mitglieder folgen dem Leader */
+    public void connect(Player player, String server, boolean partyFollow) {
         c().send(player, "connecting", "server", server);
+        if (partyFollow) plugin.parties().onConnect(player, server);
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(bytes)) {
             out.writeUTF("Connect");
             out.writeUTF(server);

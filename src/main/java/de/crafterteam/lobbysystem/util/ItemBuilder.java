@@ -105,6 +105,12 @@ public final class ItemBuilder {
         return this;
     }
 
+    /** Kopf eines (evtl. offline) Spielers – Textur wird vom Server/Client nachgeladen. */
+    public ItemBuilder skull(UUID uuid, String name) {
+        if (meta instanceof SkullMeta sm) sm.setPlayerProfile(Bukkit.createProfile(uuid, name));
+        return this;
+    }
+
     public ItemBuilder edit(Consumer<ItemMeta> consumer) {
         consumer.accept(meta);
         return this;

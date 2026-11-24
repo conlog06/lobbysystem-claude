@@ -30,6 +30,11 @@ public final class PlayerData {
     private final Map<String, String> selected = new ConcurrentHashMap<>();
     private final Set<String> owned = ConcurrentHashMap.newKeySet();
 
+    private volatile int streak;
+    private volatile boolean friendRequests = true;
+    private volatile boolean partyInvites = true;
+    private volatile boolean friendNotify = true;
+
     private volatile boolean dirty;
 
     public PlayerData(UUID uuid, String name) {
@@ -169,6 +174,27 @@ public final class PlayerData {
     public Set<String> owned() { return Collections.unmodifiableSet(owned); }
     public boolean owns(String id) { return owned.contains(id); }
     public void addOwned(String id) { owned.add(id); dirty = true; }
+
+    public int streak() { return streak; }
+    public void streak(int v) { streak = Math.max(0, v); dirty = true; }
+
+    public boolean friendRequests() { return friendRequests; }
+    public void friendRequests(boolean v) { friendRequests = v; dirty = true; }
+    public boolean partyInvites() { return partyInvites; }
+    public void partyInvites(boolean v) { partyInvites = v; dirty = true; }
+    public boolean friendNotify() { return friendNotify; }
+    public void friendNotify(boolean v) { friendNotify = v; dirty = true; }
+
+    public String friendSettingsString() {
+        return "req=" + b(friendRequests) + ";party=" + b(partyInvites) + ";notify=" + b(friendNotify);
+    }
+
+    public void loadFriendSettings(String s) {
+        Map<String, String> m = parse(s);
+        friendRequests = !"0".equals(m.get("req"));
+        partyInvites = !"0".equals(m.get("party"));
+        friendNotify = !"0".equals(m.get("notify"));
+    }
 
     public boolean dirty() { return dirty; }
     public void clean() { dirty = false; }

@@ -161,6 +161,15 @@ public final class ConfigManager {
         to.sendMessage(msg(key, ph));
     }
 
+    /** Nachricht mit eigenem Prefix (z. B. friend_prefix, party_prefix, clan_prefix). */
+    public Component msgP(String prefixKey, String key, String... ph) {
+        return Text.parse(raw(prefixKey) + raw(key), map(ph));
+    }
+
+    public void sendP(CommandSender to, String prefixKey, String key, String... ph) {
+        to.sendMessage(msgP(prefixKey, key, ph));
+    }
+
     public static Map<String, String> map(String... kv) {
         Map<String, String> m = new LinkedHashMap<>();
         for (int i = 0; i + 1 < kv.length; i += 2) m.put(kv[i], kv[i + 1]);

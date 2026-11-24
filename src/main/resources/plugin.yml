@@ -3,6 +3,7 @@ version: '${project.version}'
 main: de.crafterteam.lobbysystem.LobbySystem
 api-version: '1.21'
 author: SujucDerBreite
+softdepend: [PlaceholderAPI]
 description: Modernes LobbySystem für Paper 1.21.10 – 26.3
 website: https://github.com/conlog06/lobbysystem-claude
 
@@ -42,6 +43,22 @@ commands:
     description: Lizenzverwaltung (nur Owner)
     usage: /license <create|list|info|verify>
     aliases: [lizenz]
+  friend:
+    description: Freundesystem
+    usage: /friend <add|remove|accept|deny|list|requests|jump|msg|toggle>
+    aliases: [f, freunde, friends]
+  party:
+    description: Party-System
+    usage: /party <invite|accept|deny|leave|kick|promote|disband|list|warp|chat>
+    aliases: [p]
+  clan:
+    description: Clan-System
+    usage: /clan <create|invite|accept|deny|leave|kick|promote|demote|disband|info|chat>
+    aliases: [clans]
+  lobbyswitcher:
+    description: Öffnet den Lobby-Switcher
+    usage: /lobbyswitcher
+    aliases: [lobbies, hubs]
   lobbysystem:
     description: Infos & Reload
     usage: /lobbysystem <reload|info>
