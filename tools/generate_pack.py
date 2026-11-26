@@ -128,13 +128,15 @@ def pack_png():
 
 def main():
     files = {}
+    # Kompatibel mit allen Versionen:
+    #  <1.20.2 liest pack_format | 1.20.2–1.21.8 liest supported_formats | ab 1.21.9/26.x min_format/max_format
     mcmeta = {
         "pack": {
             "description": "§bLobbySystem §7– Icons & UI",
-            "pack_format": 69,
-            "supported_formats": {"min_inclusive": 69, "max_inclusive": 200},
-            "min_format": 69,
-            "max_format": 200
+            "pack_format": 15,
+            "supported_formats": {"min_inclusive": 15, "max_inclusive": 9999},
+            "min_format": 15,
+            "max_format": 9999
         }
     }
     files["pack.mcmeta"] = json.dumps(mcmeta, indent=2, ensure_ascii=False).encode()

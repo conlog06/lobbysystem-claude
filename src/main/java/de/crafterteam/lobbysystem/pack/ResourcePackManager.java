@@ -126,17 +126,46 @@ public final class ResourcePackManager implements Listener {
         Text.icons(m);
     }
 
+    /**
+     * Entpackt das mitgelieferte Pack. Wurde die Datei nicht selbst verändert, wird sie bei
+     * Plugin-Updates automatisch durch die neue Version ersetzt (Marker: .bundled-sha1).
+     */
     private Path extract() throws Exception {
         Path dir = plugin.getDataFolder().toPath().resolve("resourcepack");
         Files.createDirectories(dir);
         Path file = dir.resolve("LobbyPack.zip");
-        if (!Files.exists(file)) {
-            try (InputStream in = plugin.getResource("pack/LobbyPack.zip")) {
-                if (in == null) throw new IllegalStateException("pack/LobbyPack.zip fehlt im Plugin");
-                Files.copy(in, file, StandardCopyOption.REPLACE_EXISTING);
-            }
+        Path marker = dir.resolve(".bundled-sha1");
+        byte[] bundled;
+        try (InputStream in = plugin.getResource("pack/LobbyPack.zip")) {
+            if (in == null) throw new IllegalStateException("pack/LobbyPack.zip fehlt im Plugin");
+            bundled = in.readAllBytes();
         }
+        String bundledSha = sha1(bundled);
+        boolean replace = !Files.exists(file);
+        if (!replace) {
+            String current = sha1(Files.readAllBytes(file));
+            String lastBundled = Files.exists(marker) ? Files.readString(marker).trim() : "";
+            // unverändertes altes Standard-Pack (oder Pack aus v2.1 ohne Marker) → aktualisieren
+            replace = !current.equals(bundledSha) && (current.equals(lastBundled) || lastBundled.isEmpty() && isOldDefault(file));
+        }
+        if (replace) {
+            Files.write(file, bundled);
+            plugin.getLogger().info("Standard-Ressourcenpaket aktualisiert.");
+        }
+        Files.writeString(marker, bundledSha);
         return file;
+    }
+
+    /** Erkennt das Standard-Pack der Version 2.1 (noch ohne Marker-Datei). */
+    private static boolean isOldDefault(Path file) {
+        try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(file.toFile())) {
+            var entry = zip.getEntry("pack.mcmeta");
+            if (entry == null) return false;
+            String meta = new String(zip.getInputStream(entry).readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            return meta.contains("LobbySystem") && meta.contains("\"max_format\": 200");
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static String sha1(byte[] data) {
