@@ -76,6 +76,7 @@ public final class DailyRewardMenu extends Menu {
     private void claim(int coins, int lose) {
         PlayerData d = plugin.data().get(player);
         plugin.coins().change(player.getUniqueId(), coins, "daily_reward");
+        plugin.levels().addXp(player, plugin.configs().cfg().levels.xpDailyReward);
         d.addLose(lose);
         success();
         player.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, player.getLocation().add(0, 1, 0), 40, 0.4, 0.6, 0.4, 0.3);

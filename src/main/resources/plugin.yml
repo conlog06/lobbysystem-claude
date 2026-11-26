@@ -3,7 +3,7 @@ version: '${project.version}'
 main: de.crafterteam.lobbysystem.LobbySystem
 api-version: '1.21'
 author: SujucDerBreite
-softdepend: [PlaceholderAPI]
+softdepend: [PlaceholderAPI, Vault, LuckPerms]
 description: Modernes LobbySystem für Paper 1.21.10 – 26.3
 website: https://github.com/conlog06/lobbysystem-claude
 
@@ -65,6 +65,13 @@ commands:
   setleaderboard:
     description: Setzt oder entfernt eine Bestenliste (Hologramm)
     usage: /setleaderboard [remove] <coins|playtime|streak|friends>
+  cookie:
+    description: Cookie Clicker – Kekse backen & leveln
+    usage: /cookie
+    aliases: [kekse, cookies, cookieclicker]
+  level:
+    description: Zeigt dein Lobby-Level
+    usage: /level [Spieler]
   lobbysystem:
     description: Infos & Reload
     usage: /lobbysystem <reload|info>

@@ -56,18 +56,31 @@ public final class ProfileMenu extends Menu {
                         "<dark_gray>↪</dark_gray> {i_coin} <gray>Coins: <yellow>" + Text.formatNumber(d.coins()),
                         "<dark_gray>↪</dark_gray> {i_ticket} <gray>Lose: <yellow>" + d.lose(),
                         "<dark_gray>↪</dark_gray> {i_clock} <gray>Spielzeit: <aqua>" + Text.formatDuration(d.playtime()),
-                        "<dark_gray>↪</dark_gray> {i_heart} <gray>Login-Streak: <gold>" + d.streak() + " Tage").build());
+                        "<dark_gray>↪</dark_gray> {i_heart} <gray>Login-Streak: <gold>" + d.streak() + " Tage",
+                        "",
+                        "<dark_gray>↪</dark_gray> {i_rank} <gray>Lobby-Level: <gold>" + plugin.levels().level(d.xp()),
+                        "<dark_gray>↪</dark_gray> " + plugin.levels().bar(d.xp(), 25)).build());
         set(13, new ItemBuilder(Material.COMPARATOR).name("<dark_gray>»</dark_gray> <aqua>Einstellungen")
                 .lore("<dark_gray>↪</dark_gray> <gray>Passe deine Lobby an").build(), e -> {
             click();
             new SettingsMenu(plugin, player).open();
         });
+        if (plugin.configs().cfg().cookieClicker.enabled) {
+            set(31, new ItemBuilder(Material.COOKIE).name("<dark_gray>»</dark_gray> <#dfa579>Cookie Clicker")
+                    .lore("<dark_gray>↪</dark_gray> <gray>" + de.crafterteam.lobbysystem.progression.CookieManager.format(d.cookies()) + " Kekse",
+                            "<dark_gray>↪</dark_gray> <gray>Backe Kekse und steige im Level auf!", "",
+                            "<dark_gray>»</dark_gray> <yellow>Klicke zum Spielen").glow(true).build(), e -> {
+                click();
+                new CookieMenu(plugin, player).open();
+            });
+        }
         set(15, new ItemBuilder(Material.CLOCK).name("<dark_gray>»</dark_gray> <light_purple>Tägliche Belohnung")
                 .lore("<dark_gray>↪</dark_gray> <gray>Hol dir Coins & Lose").build(), e -> {
             click();
             new DailyRewardMenu(plugin, player).open();
         });
 
+        TITLES = plugin.configs().cfg().integrations.games;
         // ---- Spielmodus-Stats
         int[] slots = {20, 21, 22, 23, 24};
         if (games.isEmpty()) {
@@ -94,13 +107,18 @@ public final class ProfileMenu extends Menu {
     }
 
     private static String title(String game) {
-        return switch (game) {
-            case "missilewars" -> "<red>Missile Wars";
-            default -> "<aqua>" + Text.escape(game);
-        };
+        return TITLES.getOrDefault(game, "<aqua>" + Text.escape(game));
     }
 
+    /** wird beim Bauen aus integrations.games befüllt */
+    private static java.util.Map<String, String> TITLES = java.util.Map.of();
+
     private static Material icon(String game) {
-        return "missilewars".equals(game) ? Material.TNT : Material.IRON_SWORD;
+        return switch (game) {
+            case "missilewars" -> Material.TNT;
+            case "bedwars" -> Material.RED_BED;
+            case "skywars" -> Material.FEATHER;
+            default -> Material.IRON_SWORD;
+        };
     }
 }

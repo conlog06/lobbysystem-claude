@@ -109,7 +109,7 @@ public final class ResourcePackManager implements Listener {
     }
 
     /** Icon-Platzhalter: eigene Glyphen (mit Pack) oder Unicode-Ersatz. */
-    private void applyIcons() {
+    public void applyIcons() {
         boolean glyphs = cfg().enabled && cfg().icons;
         Map<String, String> m = new LinkedHashMap<>();
         m.put("i_coin", glyphs ? "<white></white>" : "<yellow>⭐</yellow>");

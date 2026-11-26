@@ -65,6 +65,13 @@ public final class LobbyCommands implements TabExecutor {
             }
             case "tpcoord" -> tpCoord(sender, args);
             case "pay" -> pay(sender, args);
+            case "cookie" -> {
+                Player p = player(sender);
+                if (p == null || !check(sender, "cookie")) break;
+                if (!c().cfg().cookieClicker.enabled) break;
+                new de.crafterteam.lobbysystem.gui.CookieMenu(plugin, p).open();
+            }
+            case "level" -> level(sender, args);
             case "setleaderboard" -> setLeaderboard(sender, args);
             case "lobbyswitcher" -> {
                 Player p = player(sender);
@@ -206,18 +213,31 @@ public final class LobbyCommands implements TabExecutor {
         }));
     }
 
+    private void level(CommandSender sender, String[] args) {
+        Player target = args.length >= 1 ? Bukkit.getPlayerExact(args[0]) : (sender instanceof Player p ? p : null);
+        if (target == null) {
+            c().send(sender, "player_not_found", "name", args.length >= 1 ? args[0] : "-");
+            return;
+        }
+        long xp = plugin.data().get(target).xp();
+        var lv = plugin.levels();
+        int level = lv.level(xp);
+        c().send(sender, "level_info", "name", target.getName(), "level", Integer.toString(level),
+                "xp", Text.formatNumber(lv.progress(xp)), "needed", Text.formatNumber(lv.needed(level)), "bar", lv.bar(xp, 30));
+    }
+
     private void setLeaderboard(CommandSender sender, String[] args) {
         Player p = player(sender);
         if (p == null || !check(sender, "setleaderboard")) return;
         boolean remove = args.length >= 2 && args[0].equalsIgnoreCase("remove");
-        var type = args.length == 0 ? null : de.crafterteam.lobbysystem.display.LeaderboardManager.Type.parse(remove ? args[1] : args[0]);
+        var type = args.length == 0 ? null : plugin.leaderboards().board(remove ? args[1] : args[0]);
         if (type == null) {
-            usage(sender, "/setleaderboard [remove] <coins|playtime|streak|friends|mw_wins|mw_kills|mw_level>");
+            usage(sender, "/setleaderboard [remove] <coins|playtime|streak|level|cookies|friends|<spiel>_<wins|kills|deaths|games|level>>");
             c().send(p, "leaderboard_types");
             return;
         }
         plugin.leaderboards().set(type, remove ? null : p.getLocation());
-        c().send(p, remove ? "leaderboard_removed" : "leaderboard_set", "type", type.name().toLowerCase());
+        c().send(p, remove ? "leaderboard_removed" : "leaderboard_set", "type", type.key());
     }
 
     // ---------------------------------------------------------------- NPCs, Spawn, Warps
@@ -394,7 +414,7 @@ public final class LobbyCommands implements TabExecutor {
                 if (args.length == 2) return Cmds.filter(List.of("10", "100", "1000"), args[1]);
             }
             case "setleaderboard" -> {
-                List<String> types = List.of("coins", "playtime", "streak", "friends", "mw_wins", "mw_kills", "mw_level");
+                List<String> types = List.of("coins", "playtime", "streak", "level", "cookies", "friends", "missilewars_wins", "missilewars_kills", "missilewars_level", "bedwars_wins");
                 if (args.length == 1) {
                     List<String> l = new ArrayList<>(types);
                     l.add("remove");

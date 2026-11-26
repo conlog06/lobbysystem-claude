@@ -96,6 +96,10 @@ public final class Database {
             addColumn(con, "ls_players", "last_seen", "bigint not null default 0");
             addColumn(con, "ls_players", "streak", "int not null default 0");
             addColumn(con, "ls_players", "friend_settings", "varchar(64) not null default ''");
+            // ---- Level & Cookie Clicker (v2.5)
+            addColumn(con, "ls_players", "xp", "bigint not null default 0");
+            addColumn(con, "ls_players", "cookies", "double not null default 0");
+            addColumn(con, "ls_players", "cookie_data", "varchar(512) not null default ''");
             // ---- Spielmodus-Integration (MissileWars & Co.)
             addColumn(con, "ls_servers", "state", "varchar(32) not null default ''");
             addColumn(con, "ls_servers", "game", "varchar(32) not null default ''");

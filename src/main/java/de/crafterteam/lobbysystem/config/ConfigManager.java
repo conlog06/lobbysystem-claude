@@ -245,6 +245,8 @@ public final class ConfigManager {
          * premiumplus, premium, vip, spieler, team – leer = automatisch nach Rangname, "none" = kein Badge.
          */
         public String badge;
+        /** intern: LuckPerms-Gruppe (für automatische Badge-Zuordnung) */
+        public transient String group;
 
         public Rank() {
         }

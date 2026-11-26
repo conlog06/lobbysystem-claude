@@ -66,6 +66,13 @@ public final class SidebarManager {
     }
 
     private ConfigManager.Rank resolveRank(Player player) {
+        if (c().cfg().integrations.luckPermsRanks && Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
+            try {
+                return de.crafterteam.lobbysystem.hook.LuckPermsRanks.rank(player);
+            } catch (Throwable t) {
+                // LuckPerms noch nicht bereit → ranks.json
+            }
+        }
         for (ConfigManager.Rank r : c().ranks()) {
             if (r.permission == null || r.permission.isBlank() || player.hasPermission(r.permission)) return r;
         }
@@ -81,7 +88,8 @@ public final class SidebarManager {
     /** Badge-Key passend zum Rang (Feld "badge" oder automatisch aus dem Namen). */
     public static String badgeKey(ConfigManager.Rank rank) {
         if (rank.badge != null && !rank.badge.isBlank()) return rank.badge.trim().toLowerCase();
-        String n = rank.name == null ? "" : rank.name.toLowerCase().replace("+", "plus").replaceAll("[^a-z]", "");
+        String source = rank.group != null ? rank.group : rank.name;
+        String n = source == null ? "" : source.toLowerCase().replace("+", "plus").replaceAll("[^a-z]", "");
         return switch (n) {
             case "developer", "entwickler" -> "dev";
             case "moderator", "srmoderator" -> "mod";
@@ -219,6 +227,11 @@ public final class SidebarManager {
                 "friends_online", Integer.toString(friends[0]),
                 "friends_total", Integer.toString(friends[1]),
                 "streak", Integer.toString(data.streak()),
+                "level", Integer.toString(plugin.levels().level(data.xp())),
+                "xp", Text.formatNumber(plugin.levels().progress(data.xp())),
+                "xp_needed", Text.formatNumber(plugin.levels().needed(plugin.levels().level(data.xp()))),
+                "xp_bar", plugin.levels().bar(data.xp(), 20),
+                "cookies", de.crafterteam.lobbysystem.progression.CookieManager.format(data.cookies()),
                 "proxy_server", c().cfg().proxyServerName,
                 "name", player.getName(),
                 "coins", Text.formatNumber(data.coins()),

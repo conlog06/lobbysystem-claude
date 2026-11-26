@@ -26,6 +26,21 @@ public final class ServerRegistry {
     private final LobbySystem plugin;
     /** Schnappschuss aller aktiven Server (alle 10 s aktualisiert) – ohne DB-Zugriff im Main-Thread nutzbar. */
     private volatile Map<String, ServerInfo> snapshot = Map.of();
+    /** Status & Spielmodus dieses Servers (Lobby: LOBBY/lobby, Spielserver: über die GameAPI) */
+    private volatile String state = "LOBBY";
+    private volatile String game = "lobby";
+
+    public void state(String s) {
+        state = s == null ? "" : s.toUpperCase();
+    }
+
+    public void game(String g) {
+        game = g == null ? "" : g.toLowerCase();
+    }
+
+    public String game() {
+        return game;
+    }
 
     public ServerRegistry(LobbySystem plugin) {
         this.plugin = plugin;
@@ -40,19 +55,24 @@ public final class ServerRegistry {
         int online = Bukkit.getOnlinePlayers().size();
         int max = Bukkit.getMaxPlayers();
         String name = name();
+        String st = state, gm = game;
         plugin.database().submit(con -> {
             long now = System.currentTimeMillis();
-            try (PreparedStatement ps = con.prepareStatement("update ls_servers set online = ?, max_players = ?, updated = ?, state = 'LOBBY', game = 'lobby' where name = ?")) {
+            try (PreparedStatement ps = con.prepareStatement("update ls_servers set online = ?, max_players = ?, updated = ?, state = ?, game = ? where name = ?")) {
                 ps.setInt(1, online);
                 ps.setInt(2, max);
                 ps.setLong(3, now);
-                ps.setString(4, name);
+                ps.setString(4, st);
+                ps.setString(5, gm);
+                ps.setString(6, name);
                 if (ps.executeUpdate() == 0) {
-                    try (PreparedStatement ins = con.prepareStatement("insert into ls_servers (name, online, max_players, updated, state, game) values (?, ?, ?, ?, 'LOBBY', 'lobby')")) {
+                    try (PreparedStatement ins = con.prepareStatement("insert into ls_servers (name, online, max_players, updated, state, game) values (?, ?, ?, ?, ?, ?)")) {
                         ins.setString(1, name);
                         ins.setInt(2, online);
                         ins.setInt(3, max);
                         ins.setLong(4, now);
+                        ins.setString(5, st);
+                        ins.setString(6, gm);
                         ins.executeUpdate();
                     }
                 }

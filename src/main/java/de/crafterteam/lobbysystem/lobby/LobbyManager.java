@@ -56,6 +56,7 @@ public final class LobbyManager {
         player.setSaturation(20f);
         player.setExp(0f);
         player.setLevel(0);
+        plugin.levels().updateBar(player);
         player.setFireTicks(0);
         player.getActivePotionEffects().forEach(e -> player.removePotionEffect(e.getType()));
         int speed = c().cfg().speed.level;
