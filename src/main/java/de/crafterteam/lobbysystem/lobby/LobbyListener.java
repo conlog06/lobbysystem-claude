@@ -117,6 +117,7 @@ public final class LobbyListener implements Listener {
         plugin.friends().announce(player, false);
         plugin.friends().forget(player.getUniqueId());
         plugin.clans().forget(player.getUniqueId());
+        plugin.proxy().forget(player.getUniqueId());
         plugin.data().unload(player.getUniqueId());
     }
 
@@ -222,7 +223,9 @@ public final class LobbyListener implements Listener {
         Player sender = event.getPlayer();
         PluginConfig.Chat chat = c().cfg().chat;
         String plain = Text.plain(event.message()).trim();
-        if (!c().has(sender, "chat_bypass") || c().perm("chat_bypass") == null) {
+        // Anti-Spam & Filter macht das BungeeSystem auf dem Proxy (sonst doppelt)
+        boolean proxyChat = plugin.proxy().active("chat");
+        if (!proxyChat && (!c().has(sender, "chat_bypass") || c().perm("chat_bypass") == null)) {
             long now = System.currentTimeMillis();
             if (lastChat.getOrDefault(sender.getUniqueId(), 0L) + (long) (chat.cooldownSeconds * 1000) > now) {
                 event.setCancelled(true);
@@ -238,7 +241,7 @@ public final class LobbyListener implements Listener {
             lastMessage.put(sender.getUniqueId(), plain);
         }
         // Wortfilter
-        for (String word : chat.filter) {
+        for (String word : proxyChat ? java.util.List.<String>of() : chat.filter) {
             if (word == null || word.isBlank()) continue;
             event.message(event.message().replaceText(b -> b.match("(?i)" + java.util.regex.Pattern.quote(word))
                     .replacement("*".repeat(Math.max(3, word.length())))));

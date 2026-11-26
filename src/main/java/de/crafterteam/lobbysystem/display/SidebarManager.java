@@ -224,6 +224,8 @@ public final class SidebarManager {
                 "coins", Text.formatNumber(data.coins()),
                 "lose", Integer.toString(data.lose()),
                 "playtime", Text.formatDuration(data.playtime()),
+                "onlinetime", Text.formatDuration(plugin.proxy().onlineTimeSeconds(player.getUniqueId()) >= 0
+                        ? plugin.proxy().onlineTimeSeconds(player.getUniqueId()) : data.playtime()),
                 "rank", rank.display == null ? rank.name : rank.display,
                 "rank_badge", prefix(rank),
                 "online", Integer.toString(Bukkit.getOnlinePlayers().size()),

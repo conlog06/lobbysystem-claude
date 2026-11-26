@@ -35,6 +35,20 @@ Lotterie, Scoreboard, Tablist, Bossbar, Actionbar und Lizenzsystem.
 > ihren Namen aus der BungeeCord/Velocity-Config eintragen (z. B. `Lobby-1`). Nachrichten an Spieler auf anderen
 > Servern gehen über den Proxy (BungeeCord-Channel, funktioniert auch mit Velocity).
 
+## Neu in 2.5 – BungeeSystem-Integration
+
+Mit dem [BungeeSystem](https://github.com/conlog06/bungeesystem-crafterteam) auf dem Proxy (gleiche MySQL-Datenbank) wird es automatisch erkannt
+(`"bungeeSystem": { "mode": "auto" }` – `on`/`off` erzwingt es):
+
+- **Freunde, Party & Clans laufen auf dem Proxy** – `/friend`, `/party`, `/clan` funktionieren auf jedem Server; das Social-Menü
+  in der Lobby bleibt und schickt die Klicks an den Proxy (gleiche Tabellen, keine Daten gehen verloren)
+- **Party folgt dem Leader** auf jeden Server (nicht nur über den Navigator), Online-Meldungen der Freunde netzwerkweit
+- **Clan gründen** bucht die Coins hier ab – das Guthaben im Scoreboard stimmt sofort
+- **Chat**: Anti-Spam & Wortfilter macht der Proxy (keine doppelten Meldungen mehr)
+- **Netzwerk-Onlinezeit** im Scoreboard: `{onlinetime}` · PlaceholderAPI `%lobbysystem_onlinetime%`
+  (ohne BungeeSystem = Lobby-Spielzeit)
+- **Report, Ban, Mute** kommen komplett vom Proxy; GUIs zeigt das BungeeSystem-Addon
+
 ## Neu in 2.4 – MissileWars-Integration
 
 Zusammen mit [MissileWars 2.9+](https://github.com/conlog06/missile-wars) (gleiche MySQL-Datenbank, dort `lobbysystem.enabled: true`):

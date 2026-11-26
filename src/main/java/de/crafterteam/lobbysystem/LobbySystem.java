@@ -58,6 +58,7 @@ public final class LobbySystem extends JavaPlugin {
     private ResourcePackManager pack;
     private de.crafterteam.lobbysystem.display.LeaderboardManager leaderboards;
     private de.crafterteam.lobbysystem.lobby.SitListener sit;
+    private de.crafterteam.lobbysystem.proxy.ProxyBridge proxy;
     private boolean started;
 
     @Override
@@ -86,6 +87,8 @@ public final class LobbySystem extends JavaPlugin {
         data = new PlayerDataManager(this, database);
         coins = new CoinService(this);
         messenger = new Messenger(this);
+        proxy = new de.crafterteam.lobbysystem.proxy.ProxyBridge(this);
+        proxy.start();
         friends = new FriendManager(this);
         parties = new PartyManager(this);
         clans = new ClanManager(this);
@@ -308,6 +311,10 @@ public final class LobbySystem extends JavaPlugin {
 
     public Messenger messenger() {
         return messenger;
+    }
+
+    public de.crafterteam.lobbysystem.proxy.ProxyBridge proxy() {
+        return proxy;
     }
 
     public FriendManager friends() {
