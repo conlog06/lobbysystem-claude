@@ -412,6 +412,7 @@ public class PluginConfig {
                 "19;CRAFTING_TABLE;warp:creative;<dark_gray>»</dark_gray> <gold>ᴄʀᴇᴀᴛɪᴠᴇ;<dark_gray>»</dark_gray> <gray>Klicke zum Teleportieren",
                 "25;RED_BED;warp:bedwars;<dark_gray>»</dark_gray> <red>ʙᴇᴅᴡᴀʀꜱ;<dark_gray>»</dark_gray> <gray>Klicke zum Teleportieren",
                 "31;CHEST;spawn;<dark_gray>»</dark_gray> <yellow>ꜱᴘᴀᴡɴ;<dark_gray>»</dark_gray> <gray>Zurück zum Spawn",
+                "29;TNT;connect-best:MissileWars;<dark_gray>»</dark_gray> <red>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ;<dark_gray>»</dark_gray> <gray>Spieler: <white>{players:MissileWars*}\n<dark_gray>»</dark_gray> {state:MissileWars*}\n\n<dark_gray>»</dark_gray> <yellow>Klicke zum Spielen",
                 "38;REPEATER;warp:minigames;<dark_gray>»</dark_gray> <light_purple>ᴍɪɴɪɢᴀᴍᴇꜱ;<dark_gray>»</dark_gray> <gray>Klicke zum Teleportieren",
                 "42;GLOWSTONE_DUST;warp:events;<dark_gray>»</dark_gray> <yellow>ᴇᴠᴇɴᴛꜱ;<dark_gray>»</dark_gray> <gray>Klicke zum Teleportieren"
         ));
@@ -562,11 +563,12 @@ public class PluginConfig {
         m.put("pay_not_enough", "<red>Du hast nicht genug Coins.");
         m.put("leaderboard_set", "<green>Bestenliste <white>{type}</white> <green>wurde gesetzt.");
         m.put("leaderboard_removed", "<red>Bestenliste <white>{type}</white> <red>wurde entfernt.");
-        m.put("leaderboard_types", "<gray>Typen: <white>coins, playtime, streak, friends");
+        m.put("leaderboard_types", "<gray>Typen: <white>coins, playtime, streak, friends, mw_wins, mw_kills, mw_level");
         m.put("chat_cooldown", "<red>Bitte warte kurz, bevor du wieder schreibst.");
         m.put("chat_repeat", "<red>Bitte wiederhole dich nicht.");
         m.put("mentioned", "<yellow>{name}</yellow> <gray>hat dich im Chat erwähnt!");
         m.put("fly_on", "<gray>Fliegen {state}");
+        m.put("game_offline", "<red>Aktuell ist kein <white>{game}</white><red>-Server erreichbar.");
         m.put("lobby_switch_same", "<red>Du bist bereits auf dieser Lobby.");
         m.put("streak", "<gray>Login-Streak: <gold>{streak} Tage</gold> <dark_gray>(</dark_gray><yellow>+{bonus} Bonus-Coins</yellow><dark_gray>)");
         m.put("state_on", "<green>aktiviert");

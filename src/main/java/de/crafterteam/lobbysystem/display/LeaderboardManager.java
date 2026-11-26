@@ -36,7 +36,11 @@ public final class LeaderboardManager implements Listener {
         PLAYTIME("<aqua>ꜱᴘɪᴇʟᴢᴇɪᴛ", "select name, playtime as v from ls_players order by playtime desc limit ?"),
         STREAK("<gold>ʟᴏɢɪɴ-ꜱᴛʀᴇᴀᴋ", "select name, streak as v from ls_players order by streak desc limit ?"),
         FRIENDS("<dark_aqua>ꜰʀᴇᴜɴᴅᴇ", "select p.name, count(*) as v from ls_friends f join ls_players p on p.uuid = f.uuid "
-                + "group by p.uuid, p.name order by v desc limit ?");
+                + "group by p.uuid, p.name order by v desc limit ?"),
+        // ---- MissileWars (über die LobbySystem-Integration in ls_game_stats)
+        MW_WINS("<red>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ <dark_gray>·</dark_gray> <gray>ꜱɪᴇɢᴇ", "select name, wins as v from ls_game_stats where game = 'missilewars' order by wins desc limit ?"),
+        MW_KILLS("<red>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ <dark_gray>·</dark_gray> <gray>ᴋɪʟʟꜱ", "select name, kills as v from ls_game_stats where game = 'missilewars' order by kills desc limit ?"),
+        MW_LEVEL("<red>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ <dark_gray>·</dark_gray> <gray>ʟᴇᴠᴇʟ", "select name, level as v from ls_game_stats where game = 'missilewars' order by level desc limit ?");
 
         final String title;
         final String sql;
@@ -104,6 +108,7 @@ public final class LeaderboardManager implements Listener {
         return switch (type) {
             case PLAYTIME -> Text.formatDuration(v);
             case STREAK -> v + (v == 1 ? " Tag" : " Tage");
+            case MW_LEVEL -> "Level " + v;
             default -> Text.formatNumber(v);
         };
     }

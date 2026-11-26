@@ -96,6 +96,15 @@ public final class Database {
             addColumn(con, "ls_players", "last_seen", "bigint not null default 0");
             addColumn(con, "ls_players", "streak", "int not null default 0");
             addColumn(con, "ls_players", "friend_settings", "varchar(64) not null default ''");
+            // ---- Spielmodus-Integration (MissileWars & Co.)
+            addColumn(con, "ls_servers", "state", "varchar(32) not null default ''");
+            addColumn(con, "ls_servers", "game", "varchar(32) not null default ''");
+            try (Statement st = con.createStatement()) {
+                st.executeUpdate("create table if not exists ls_game_stats (uuid varchar(36) not null, game varchar(32) not null, "
+                        + "name varchar(16) not null, wins int not null default 0, kills int not null default 0, "
+                        + "deaths int not null default 0, games int not null default 0, level int not null default 0, "
+                        + "updated bigint not null default 0, primary key (uuid, game))");
+            }
             return null;
         }).get(15, TimeUnit.SECONDS);
     }

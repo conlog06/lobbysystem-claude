@@ -262,6 +262,12 @@ public final class LobbyManager {
         player.closeInventory();
         switch (type) {
             case "connect", "server" -> connect(player, value);
+            case "connect-best", "game", "best" -> {
+                // bester Server eines Spielmodus (z. B. connect-best:MissileWars → MissileWars-1, -2 …)
+                var best = plugin.servers().best(value);
+                if (best == null) c().send(player, "game_offline", "game", value);
+                else connect(player, best.name());
+            }
             case "command", "cmd" -> player.performCommand(value.startsWith("/") ? value.substring(1) : value);
             case "spawn" -> teleportSpawn(player, true);
             default -> {

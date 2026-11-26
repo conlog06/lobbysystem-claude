@@ -162,7 +162,7 @@ public final class LobbyListener implements Listener {
             case "silentlobby" -> toggleSilent(player);
             case "lottery" -> new LotteryMenu(plugin, player).open();
             case "extras" -> new CosmeticsMenu(plugin, player, CosmeticsMenu.lastCategory(player)).open();
-            case "profile" -> new ProfileMenu(plugin, player).open();
+            case "profile" -> ProfileMenu.open(plugin, player);
             case "friends" -> de.crafterteam.lobbysystem.gui.SocialMenu.open(plugin, player, de.crafterteam.lobbysystem.gui.SocialMenu.Tab.FRIENDS);
             case "lobbyswitcher" -> de.crafterteam.lobbysystem.gui.LobbySwitcherMenu.open(plugin, player);
             case "gadget" -> new CosmeticsMenu(plugin, player, de.crafterteam.lobbysystem.cosmetics.Cosmetic.Category.GADGET).open();

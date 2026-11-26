@@ -49,7 +49,12 @@ public final class LobbyPlaceholders extends PlaceholderExpansion {
         PlayerData d = plugin.data().cached(offline.getUniqueId()).orElse(null);
         var clan = plugin.clans().cached(offline.getUniqueId()).orElse(null);
         int[] friends = plugin.friends().count(offline.getUniqueId());
-        return switch (params.toLowerCase()) {
+        String lower = params.toLowerCase();
+        // %lobbysystem_players_MissileWars*% / %lobbysystem_state_MissileWars-1%
+        if (lower.startsWith("players_")) return Integer.toString(plugin.servers().players(params.substring(8)));
+        if (lower.startsWith("state_")) return de.crafterteam.lobbysystem.util.Text.plain(
+                de.crafterteam.lobbysystem.util.Text.parse(plugin.servers().stateText(params.substring(6))));
+        return switch (lower) {
             case "coins" -> d == null ? "0" : Text.formatNumber(d.coins());
             case "coins_raw" -> d == null ? "0" : Long.toString(d.coins());
             case "lose" -> d == null ? "0" : Integer.toString(d.lose());

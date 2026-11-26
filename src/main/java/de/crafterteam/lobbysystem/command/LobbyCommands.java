@@ -212,7 +212,7 @@ public final class LobbyCommands implements TabExecutor {
         boolean remove = args.length >= 2 && args[0].equalsIgnoreCase("remove");
         var type = args.length == 0 ? null : de.crafterteam.lobbysystem.display.LeaderboardManager.Type.parse(remove ? args[1] : args[0]);
         if (type == null) {
-            usage(sender, "/setleaderboard [remove] <coins|playtime|streak|friends>");
+            usage(sender, "/setleaderboard [remove] <coins|playtime|streak|friends|mw_wins|mw_kills|mw_level>");
             c().send(p, "leaderboard_types");
             return;
         }
@@ -394,7 +394,7 @@ public final class LobbyCommands implements TabExecutor {
                 if (args.length == 2) return Cmds.filter(List.of("10", "100", "1000"), args[1]);
             }
             case "setleaderboard" -> {
-                List<String> types = List.of("coins", "playtime", "streak", "friends");
+                List<String> types = List.of("coins", "playtime", "streak", "friends", "mw_wins", "mw_kills", "mw_level");
                 if (args.length == 1) {
                     List<String> l = new ArrayList<>(types);
                     l.add("remove");

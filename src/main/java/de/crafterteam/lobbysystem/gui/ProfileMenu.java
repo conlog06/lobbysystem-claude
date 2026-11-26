@@ -4,14 +4,46 @@ import de.crafterteam.lobbysystem.LobbySystem;
 import de.crafterteam.lobbysystem.storage.PlayerData;
 import de.crafterteam.lobbysystem.util.ItemBuilder;
 import de.crafterteam.lobbysystem.util.Text;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+/** Profil mit Lobby-Stats und Spielmodus-Stats (z. B. MissileWars) aus ls_game_stats. */
 public final class ProfileMenu extends Menu {
 
-    public ProfileMenu(LobbySystem plugin, Player player) {
+    /** Stats eines Spielmodus */
+    public record GameStats(String game, int wins, int kills, int deaths, int games, int level) {
+    }
+
+    private final List<GameStats> games;
+
+    private ProfileMenu(LobbySystem plugin, Player player, List<GameStats> games) {
         super(plugin, player);
-        create(3, "<dark_gray>↪</dark_gray> <gradient:#56ab2f:#a8e063>ᴘʀᴏꜰɪʟ</gradient>");
+        this.games = games;
+        create(4, "<dark_gray>↪</dark_gray> <gradient:#56ab2f:#a8e063>ᴘʀᴏꜰɪʟ</gradient>");
+    }
+
+    public static void open(LobbySystem plugin, Player player) {
+        String id = player.getUniqueId().toString();
+        plugin.database().submit(con -> {
+            List<GameStats> out = new ArrayList<>();
+            try (PreparedStatement ps = con.prepareStatement(
+                    "select game, wins, kills, deaths, games, level from ls_game_stats where uuid = ? order by game")) {
+                ps.setString(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) out.add(new GameStats(rs.getString(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5), rs.getInt(6)));
+                }
+            }
+            return out;
+        }).exceptionally(e -> List.of()).thenAccept(list -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (player.isOnline()) new ProfileMenu(plugin, player, list).open();
+        }));
     }
 
     @Override
@@ -20,10 +52,11 @@ public final class ProfileMenu extends Menu {
         var rank = plugin.sidebar().rank(player);
         set(11, new ItemBuilder(Material.PLAYER_HEAD).skull(player)
                 .name("<dark_gray>»</dark_gray> <white>" + Text.escape(player.getName()))
-                .lore("<dark_gray>↪</dark_gray> <gray>Rang: " + (rank.display == null ? rank.name : rank.display),
-                        "<dark_gray>↪</dark_gray> <gray>Coins: <yellow>" + Text.formatNumber(d.coins()),
-                        "<dark_gray>↪</dark_gray> <gray>Lose: <yellow>" + d.lose(),
-                        "<dark_gray>↪</dark_gray> <gray>Spielzeit: <aqua>" + Text.formatDuration(d.playtime())).build());
+                .lore("<dark_gray>↪</dark_gray> <gray>Rang: " + badge(rank) + (rank.display == null ? rank.name : rank.display),
+                        "<dark_gray>↪</dark_gray> {i_coin} <gray>Coins: <yellow>" + Text.formatNumber(d.coins()),
+                        "<dark_gray>↪</dark_gray> {i_ticket} <gray>Lose: <yellow>" + d.lose(),
+                        "<dark_gray>↪</dark_gray> {i_clock} <gray>Spielzeit: <aqua>" + Text.formatDuration(d.playtime()),
+                        "<dark_gray>↪</dark_gray> {i_heart} <gray>Login-Streak: <gold>" + d.streak() + " Tage").build());
         set(13, new ItemBuilder(Material.COMPARATOR).name("<dark_gray>»</dark_gray> <aqua>Einstellungen")
                 .lore("<dark_gray>↪</dark_gray> <gray>Passe deine Lobby an").build(), e -> {
             click();
@@ -34,6 +67,40 @@ public final class ProfileMenu extends Menu {
             click();
             new DailyRewardMenu(plugin, player).open();
         });
+
+        // ---- Spielmodus-Stats
+        int[] slots = {20, 21, 22, 23, 24};
+        if (games.isEmpty()) {
+            set(22, new ItemBuilder(Material.TNT).name("<dark_gray>»</dark_gray> <red>Missile Wars")
+                    .lore("<dark_gray>↪</dark_gray> <gray>Noch keine Runde gespielt", "<dark_gray>»</dark_gray> <yellow>Über den Navigator spielen").build());
+        }
+        for (int i = 0; i < games.size() && i < slots.length; i++) {
+            GameStats g = games.get(i);
+            double kd = g.deaths() == 0 ? g.kills() : (double) g.kills() / g.deaths();
+            double wr = g.games() == 0 ? 0 : 100.0 * g.wins() / g.games();
+            set(slots[i], new ItemBuilder(icon(g.game())).name("<dark_gray>»</dark_gray> " + title(g.game()))
+                    .lore("<dark_gray>↪</dark_gray> <gray>Level: <gold>" + g.level(),
+                            "<dark_gray>↪</dark_gray> <gray>Siege: <green>" + g.wins() + " <dark_gray>(" + String.format(Locale.GERMANY, "%.0f", wr) + " %)",
+                            "<dark_gray>↪</dark_gray> <gray>Runden: <white>" + g.games(),
+                            "<dark_gray>↪</dark_gray> <gray>Kills: <white>" + g.kills() + " <dark_gray>|</dark_gray> <gray>Tode: <white>" + g.deaths(),
+                            "<dark_gray>↪</dark_gray> <gray>K/D: <aqua>" + String.format(Locale.GERMANY, "%.2f", kd)).build());
+        }
         fill(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
+    private static String badge(de.crafterteam.lobbysystem.config.ConfigManager.Rank rank) {
+        String icon = Text.icon("r_" + de.crafterteam.lobbysystem.display.SidebarManager.badgeKey(rank));
+        return icon == null ? "" : icon + " ";
+    }
+
+    private static String title(String game) {
+        return switch (game) {
+            case "missilewars" -> "<red>Missile Wars";
+            default -> "<aqua>" + Text.escape(game);
+        };
+    }
+
+    private static Material icon(String game) {
+        return "missilewars".equals(game) ? Material.TNT : Material.IRON_SWORD;
     }
 }

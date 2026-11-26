@@ -35,6 +35,23 @@ Lotterie, Scoreboard, Tablist, Bossbar, Actionbar und Lizenzsystem.
 > ihren Namen aus der BungeeCord/Velocity-Config eintragen (z. B. `Lobby-1`). Nachrichten an Spieler auf anderen
 > Servern gehen über den Proxy (BungeeCord-Channel, funktioniert auch mit Velocity).
 
+## Neu in 2.4 – MissileWars-Integration
+
+Zusammen mit [MissileWars 2.9+](https://github.com/conlog06/missile-wars) (gleiche MySQL-Datenbank, dort `lobbysystem.enabled: true`):
+
+- **Gemeinsame Coins** – in MissileWars verdient/ausgegeben = Lobby-Guthaben (Cosmetics, Clans, /pay …)
+- **Navigator mit Live-Daten** – `connect-best:MissileWars` schickt in die beste Runde (wartende zuerst),
+  Platzhalter `{players:MissileWars*}`, `{max:…}`, `{state:…}` (aktualisiert sich alle 2 s, solange offen)
+- **Freunde** sehen „MissileWars-1" als Standort und können per `/friend jump` nachkommen; Party folgt dem Leader
+- **Bestenlisten:** `/setleaderboard mw_wins|mw_kills|mw_level`
+- **Profil** zeigt MissileWars-Stats (Level, Siege, Winrate, K/D)
+- PlaceholderAPI: `%lobbysystem_players_MissileWars*%`, `%lobbysystem_state_MissileWars*%`
+
+Navigator-Eintrag für bestehende Configs (in `navigatorItems` einfügen):
+```
+"29;TNT;connect-best:MissileWars;<red>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ;<gray>Spieler: <white>{players:MissileWars*}\n{state:MissileWars*}"
+```
+
 ## Neu in 2.2
 
 - **Performance:** Scoreboard/Tab senden nur noch Änderungen, Platzhalter 1×/Sekunde pro Spieler (statt 3×),
