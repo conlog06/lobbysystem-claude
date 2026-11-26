@@ -58,6 +58,7 @@ public final class LobbySystem extends JavaPlugin {
     private ResourcePackManager pack;
     private de.crafterteam.lobbysystem.display.LeaderboardManager leaderboards;
     private de.crafterteam.lobbysystem.lobby.SitListener sit;
+    private de.crafterteam.lobbysystem.proxy.ProxyBridge proxy;
     private de.crafterteam.lobbysystem.storage.GameStatsService gameStats;
     private de.crafterteam.lobbysystem.progression.LevelManager levels;
     private de.crafterteam.lobbysystem.progression.CookieManager cookies;
@@ -91,6 +92,8 @@ public final class LobbySystem extends JavaPlugin {
         coins = new CoinService(this);
         gameStats = new de.crafterteam.lobbysystem.storage.GameStatsService(this);
         messenger = new Messenger(this);
+        proxy = new de.crafterteam.lobbysystem.proxy.ProxyBridge(this);
+        proxy.start();
         friends = new FriendManager(this);
         parties = new PartyManager(this);
         clans = new ClanManager(this);
@@ -357,6 +360,10 @@ public final class LobbySystem extends JavaPlugin {
 
     public Messenger messenger() {
         return messenger;
+    }
+
+    public de.crafterteam.lobbysystem.proxy.ProxyBridge proxy() {
+        return proxy;
     }
 
     public FriendManager friends() {

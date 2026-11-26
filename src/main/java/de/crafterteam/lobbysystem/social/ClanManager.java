@@ -159,6 +159,7 @@ public final class ClanManager {
     // ---------------------------------------------------------------- Aktionen
 
     public void create(Player p, String name, String tag) {
+        if (plugin.proxy().forward(p, "clan", "clan", "create " + name + " " + tag)) return;
         PluginConfig.Social s = s();
         if (!name.matches("[A-Za-z0-9_]{2," + s.clanNameMax + "}")) {
             msg(p, "clan_invalid_name", "max", Integer.toString(s.clanNameMax));
@@ -197,6 +198,7 @@ public final class ClanManager {
     }
 
     public void invite(Player p, String name) {
+        if (plugin.proxy().forward(p, "clan", "clan", "invite " + name)) return;
         withClan(p, MODERATOR, clan -> plugin.data().lookup(name).thenAccept(opt -> {
             if (opt.isEmpty()) {
                 sync(() -> c().send(p, "player_not_found", "name", name));
@@ -223,6 +225,7 @@ public final class ClanManager {
     }
 
     public void accept(Player p, String tag) {
+        if (plugin.proxy().forward(p, "clan", "clan", "accept " + tag)) return;
         db(con -> {
             if (loadByMember(con, p.getUniqueId()) != null) {
                 msg(p, "clan_already_in");
@@ -258,6 +261,7 @@ public final class ClanManager {
     }
 
     public void deny(Player p, String tag) {
+        if (plugin.proxy().forward(p, "clan", "clan", "deny " + tag)) return;
         db(con -> {
             Clan clan = load(con, "tag", tag);
             if (clan == null) {
@@ -270,6 +274,7 @@ public final class ClanManager {
     }
 
     public void leave(Player p) {
+        if (plugin.proxy().forward(p, "clan", "clan", "leave")) return;
         withClan(p, MEMBER, clan -> db(con -> {
             if (clan.role(p.getUniqueId()) == LEADER) {
                 if (clan.members().size() > 1) {
@@ -289,6 +294,7 @@ public final class ClanManager {
     }
 
     public void kick(Player p, String name) {
+        if (plugin.proxy().forward(p, "clan", "clan", "kick " + name)) return;
         withClan(p, MODERATOR, clan -> {
             Profile t = find(clan, name);
             if (t == null) {
@@ -309,6 +315,7 @@ public final class ClanManager {
     }
 
     public void promote(Player p, String name) {
+        if (plugin.proxy().forward(p, "clan", "clan", "promote " + name)) return;
         withClan(p, LEADER, clan -> {
             Profile t = find(clan, name);
             if (t == null || t.uuid().equals(p.getUniqueId())) {
@@ -334,6 +341,7 @@ public final class ClanManager {
     }
 
     public void demote(Player p, String name) {
+        if (plugin.proxy().forward(p, "clan", "clan", "demote " + name)) return;
         withClan(p, LEADER, clan -> {
             Profile t = find(clan, name);
             if (t == null || clan.role(t.uuid()) != MODERATOR) {
@@ -349,6 +357,7 @@ public final class ClanManager {
     }
 
     public void disband(Player p) {
+        if (plugin.proxy().forward(p, "clan", "clan", "disband")) return;
         withClan(p, LEADER, clan -> db(con -> {
             broadcast(clan, c().msgP(P, "clan_disbanded"));
             deleteClan(con, clan);
@@ -364,6 +373,7 @@ public final class ClanManager {
     }
 
     public void info(Player p, String tag) {
+        if (plugin.proxy().forward(p, "clan", "clan", "info" + (tag == null ? "" : " " + tag))) return;
         db(con -> tag == null ? loadByMember(con, p.getUniqueId()) : load(con, "tag", tag)).thenAccept(clan -> sync(() -> {
             if (clan == null) {
                 c().sendP(p, P, tag == null ? "clan_not_in" : "clan_not_found");
@@ -379,6 +389,7 @@ public final class ClanManager {
     }
 
     public void chat(Player p, String message) {
+        if (plugin.proxy().forward(p, "clan", "clan", "chat " + message)) return;
         withClan(p, MEMBER, clan -> broadcast(clan, Text.parse(s().clanChatFormat,
                 ConfigManager.map("tag", clan.tag(), "name", p.getName(), "message", message))));
     }

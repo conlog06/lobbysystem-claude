@@ -59,6 +59,10 @@ public final class LobbyPlaceholders extends PlaceholderExpansion {
             case "coins_raw" -> d == null ? "0" : Long.toString(d.coins());
             case "lose" -> d == null ? "0" : Integer.toString(d.lose());
             case "playtime" -> d == null ? "-" : Text.formatDuration(d.playtime());
+            case "onlinetime" -> {
+                long s = plugin.proxy().onlineTimeSeconds(offline.getUniqueId());
+                yield s >= 0 ? Text.formatDuration(s) : d == null ? "-" : Text.formatDuration(d.playtime());
+            }
             case "streak" -> d == null ? "0" : Integer.toString(d.streak());
             case "level" -> d == null ? "1" : Integer.toString(plugin.levels().level(d.xp()));
             case "xp" -> d == null ? "0" : Long.toString(d.xp());

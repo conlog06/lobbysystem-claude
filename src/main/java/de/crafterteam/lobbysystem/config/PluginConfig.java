@@ -70,6 +70,8 @@ public class PluginConfig {
 
     // ════════════════════════ 9. INTEGRATIONEN ════════════════════════
     public Integrations integrations = new Integrations();
+    /** Anbindung an das BungeeSystem (Proxy-Plugin) */
+    public BungeeSystem bungeeSystem = new BungeeSystem();
 
     // ════════════════════════ 10. NACHRICHTEN ════════════════════════
     public Map<String, String> messages = defaultMessages();
@@ -208,6 +210,14 @@ public class PluginConfig {
         public List<LotteryReward> rewards = new ArrayList<>(List.of(
                 new LotteryReward(25, 35), new LotteryReward(50, 30), new LotteryReward(100, 18),
                 new LotteryReward(250, 10), new LotteryReward(500, 5), new LotteryReward(2500, 2)));
+    }
+
+    public static class BungeeSystem {
+        /**
+         * auto = aktiv, sobald der Proxy das BungeeSystem meldet · on = immer · off = nie.
+         * Aktiv: Freunde/Party/Clan, Chat-Filter, Party-Nachziehen & Online-Meldungen übernimmt der Proxy.
+         */
+        public String mode = "auto";
     }
 
     public static class Social {

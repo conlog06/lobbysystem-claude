@@ -115,6 +115,7 @@ public final class PartyManager {
     // ---------------------------------------------------------------- Aktionen
 
     public void invite(Player p, String name) {
+        if (plugin.proxy().forward(p, "party", "party", "invite " + name)) return;
         if (p.getName().equalsIgnoreCase(name)) return;
         withProfile(p, name, t -> db(con -> {
             Party party = load(con, p.getUniqueId());
@@ -152,6 +153,7 @@ public final class PartyManager {
     }
 
     public void accept(Player p, String leaderName) {
+        if (plugin.proxy().forward(p, "party", "party", "accept " + leaderName)) return;
         withProfile(p, leaderName, leader -> db(con -> {
             Party own = load(con, p.getUniqueId());
             if (own != null) {
@@ -188,6 +190,7 @@ public final class PartyManager {
     }
 
     public void deny(Player p, String leaderName) {
+        if (plugin.proxy().forward(p, "party", "party", "deny " + leaderName)) return;
         withProfile(p, leaderName, leader -> db(con -> {
             Party party = load(con, leader.uuid());
             if (party == null || !inviteValid(con, party.id(), p.getUniqueId())) {
@@ -200,6 +203,7 @@ public final class PartyManager {
     }
 
     public void leave(Player p) {
+        if (plugin.proxy().forward(p, "party", "party", "leave")) return;
         db(con -> {
             Party party = load(con, p.getUniqueId());
             if (party == null) {
@@ -235,6 +239,7 @@ public final class PartyManager {
     }
 
     public void kick(Player p, String name) {
+        if (plugin.proxy().forward(p, "party", "party", "kick " + name)) return;
         leaderAction(p, party -> {
             Profile target = find(party, name);
             if (target == null) {
@@ -250,6 +255,7 @@ public final class PartyManager {
     }
 
     public void promote(Player p, String name) {
+        if (plugin.proxy().forward(p, "party", "party", "promote " + name)) return;
         leaderAction(p, party -> {
             Profile target = find(party, name);
             if (target == null) {
@@ -265,6 +271,7 @@ public final class PartyManager {
     }
 
     public void disband(Player p) {
+        if (plugin.proxy().forward(p, "party", "party", "disband")) return;
         leaderAction(p, party -> db(con -> {
             broadcast(party, c().msgP(P, "party_disbanded"));
             disband(con, party.id());
@@ -273,6 +280,7 @@ public final class PartyManager {
     }
 
     public void list(Player p) {
+        if (plugin.proxy().forward(p, "party", "party", "list")) return;
         party(p.getUniqueId()).thenAccept(party -> sync(() -> {
             if (party == null) {
                 c().sendP(p, P, "party_not_in");
@@ -288,6 +296,7 @@ public final class PartyManager {
     }
 
     public void chat(Player p, String message) {
+        if (plugin.proxy().forward(p, "party", "party", "chat " + message)) return;
         party(p.getUniqueId()).thenAccept(party -> {
             if (party == null) {
                 msg(p, "party_not_in");
@@ -299,12 +308,14 @@ public final class PartyManager {
 
     /** /party warp – alle Mitglieder zum Leader holen. */
     public void warp(Player p) {
+        if (plugin.proxy().forward(p, "party", "party", "warp")) return;
         leaderAction(p, party -> sync(() -> pull(p, party, c().cfg().proxyServerName, true)));
     }
 
     /** Vom LobbyManager beim Serverwechsel des Leaders aufgerufen. */
     public void onConnect(Player leader, String server) {
         if (!c().cfg().social.party || !c().cfg().social.partyFollow) return;
+        if (plugin.proxy().active("party")) return; // Party folgt über das BungeeSystem
         party(leader.getUniqueId()).thenAccept(party -> {
             if (party == null || !party.isLeader(leader.getUniqueId())) return;
             sync(() -> pull(leader, party, server, false));
@@ -324,6 +335,7 @@ public final class PartyManager {
 
     /** Alte, verwaiste Parties aufräumen (z. B. nach Server-Absturz). */
     public void cleanup() {
+        if (plugin.proxy().active("party")) return; // räumt das BungeeSystem auf
         db(con -> {
             exec(con, "delete from ls_party_invites where expires < ?", System.currentTimeMillis());
             exec(con, "delete from ls_party_members where party_id not in (select id from ls_parties)");

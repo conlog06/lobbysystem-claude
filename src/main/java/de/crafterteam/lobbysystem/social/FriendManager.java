@@ -103,6 +103,7 @@ public final class FriendManager {
     // ---------------------------------------------------------------- Aktionen
 
     public void add(Player p, String name) {
+        if (plugin.proxy().forward(p, "friends", "friend", "add " + name)) return;
         if (p.getName().equalsIgnoreCase(name)) {
             msg(p, "friend_self");
             return;
@@ -160,6 +161,7 @@ public final class FriendManager {
     }
 
     public void accept(Player p, String name) {
+        if (plugin.proxy().forward(p, "friends", "friend", "accept " + name)) return;
         int max = max(p);
         withProfile(p, name, t -> db(con -> {
             if (!exists(con, "select 1 from ls_friend_requests where sender = ? and receiver = ?", t.uuid().toString(), p.getUniqueId().toString())) {
@@ -178,6 +180,7 @@ public final class FriendManager {
     }
 
     public void deny(Player p, String name) {
+        if (plugin.proxy().forward(p, "friends", "friend", "deny " + name)) return;
         withProfile(p, name, t -> db(con -> {
             if (!exists(con, "select 1 from ls_friend_requests where sender = ? and receiver = ?", t.uuid().toString(), p.getUniqueId().toString())) {
                 msg(p, "friend_no_request", "name", t.name());
@@ -190,6 +193,7 @@ public final class FriendManager {
     }
 
     public void remove(Player p, String name) {
+        if (plugin.proxy().forward(p, "friends", "friend", "remove " + name)) return;
         withProfile(p, name, t -> db(con -> {
             if (!exists(con, "select 1 from ls_friends where uuid = ? and friend = ?", p.getUniqueId().toString(), t.uuid().toString())) {
                 msg(p, "friend_not_friends", "name", t.name());
@@ -227,6 +231,7 @@ public final class FriendManager {
     }
 
     public void list(Player p) {
+        if (plugin.proxy().forward(p, "friends", "friend", "list")) return;
         friends(p.getUniqueId()).thenAccept(list -> sync(() -> {
             c().sendP(p, P, "friend_list_header", "count", Integer.toString(list.size()));
             for (Profile f : list) p.sendMessage(Text.parse(c().raw("friend_list_entry"), ConfigManager.map(
@@ -235,6 +240,7 @@ public final class FriendManager {
     }
 
     public void listRequests(Player p) {
+        if (plugin.proxy().forward(p, "friends", "friend", "requests")) return;
         requests(p.getUniqueId()).thenAccept(list -> sync(() -> {
             c().sendP(p, P, "friend_requests_header", "count", Integer.toString(list.size()));
             for (Profile f : list) c().sendP(p, P, "friend_request_received", "name", f.name());
@@ -249,6 +255,7 @@ public final class FriendManager {
     }
 
     public void jump(Player p, String name) {
+        if (plugin.proxy().forward(p, "friends", "friend", "jump " + name)) return;
         withFriend(p, name, f -> {
             if (!f.online()) {
                 msg(p, "friend_not_online", "name", f.name());
@@ -264,6 +271,7 @@ public final class FriendManager {
     }
 
     public void message(Player p, String name, String message) {
+        if (plugin.proxy().forward(p, "friends", "friend", "msg " + name + " " + message)) return;
         withFriend(p, name, f -> {
             if (!f.online()) {
                 msg(p, "friend_not_online", "name", f.name());
@@ -278,6 +286,7 @@ public final class FriendManager {
     }
 
     public void toggle(Player p) {
+        if (plugin.proxy().forward(p, "friends", "friend", "toggle")) return;
         PlayerData d = plugin.data().get(p);
         d.friendRequests(!d.friendRequests());
         plugin.data().save(d);
@@ -287,6 +296,11 @@ public final class FriendManager {
     // ---------------------------------------------------------------- Join / Quit
 
     public void announce(Player p, boolean online) {
+        if (plugin.proxy().active("friends")) {
+            // Online-/Offline-Meldungen verschickt das BungeeSystem netzwerkweit
+            refreshCount(p.getUniqueId());
+            return;
+        }
         PlayerData own = plugin.data().get(p);
         if (!own.friendNotify() && online) {
             refreshCount(p.getUniqueId());
