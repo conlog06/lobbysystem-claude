@@ -492,23 +492,29 @@ public class PluginConfig {
         ));
     }
 
+    /** Aufgeräumte Hotbar (2.7): Silent-Lobby → Sichtbarkeits-Menü, Lobby-Switcher & Lotterie → Profil. */
+    private static HotbarItem disabled(HotbarItem h) {
+        h.enabled = false;
+        return h;
+    }
+
     private static Map<String, HotbarItem> defaultHotbar() {
         Map<String, HotbarItem> m = new LinkedHashMap<>();
         m.put("navigator", new HotbarItem(0, "COMPASS", "<dark_gray>-●</dark_gray> <gold><b>ᴛᴇʟᴇᴘᴏʀᴛᴇʀ</b>",
                 "<dark_gray>»</dark_gray> <gray>Teleportiere dich zu den Spielmodi"));
         m.put("visibility", new HotbarItem(1, "BLAZE_ROD", "<dark_gray>-●</dark_gray> <aqua><b>ꜱᴘɪᴇʟᴇʀꜱɪᴄʜᴛʙᴀʀᴋᴇɪᴛ</b>",
                 "<dark_gray>»</dark_gray> <gray>Aktuell: {visibility}"));
-        m.put("silentlobby", new HotbarItem(2, "TNT", "<dark_gray>-●</dark_gray> <red><b>ꜱɪʟᴇɴᴛ ʟᴏʙʙʏ</b>",
-                "<dark_gray>»</dark_gray> <gray>Status: {silent}"));
+        m.put("silentlobby", disabled(new HotbarItem(2, "TNT", "<dark_gray>-●</dark_gray> <red><b>ꜱɪʟᴇɴᴛ ʟᴏʙʙʏ</b>",
+                "<dark_gray>»</dark_gray> <gray>Status: {silent}")));
         m.put("gadget", new HotbarItem(4, "BARRIER", "<dark_gray>-●</dark_gray> <red>Kein Gadget ausgewählt",
                 "<dark_gray>»</dark_gray> <gray>Wähle eines über die <light_purple>Extras</light_purple>"));
-        m.put("lobbyswitcher", new HotbarItem(5, "END_CRYSTAL", "<dark_gray>-●</dark_gray> <aqua><b>ʟᴏʙʙʏ-ꜱᴡɪᴛᴄʜᴇʀ</b>",
-                "<dark_gray>»</dark_gray> <gray>Wechsle die Lobby"));
-        m.put("friends", new HotbarItem(3, "PLAYER_HEAD", "<dark_gray>-●</dark_gray> <dark_aqua><b>ꜰʀᴇᴜɴᴅᴇ</b>",
+        m.put("lobbyswitcher", disabled(new HotbarItem(5, "END_CRYSTAL", "<dark_gray>-●</dark_gray> <aqua><b>ʟᴏʙʙʏ-ꜱᴡɪᴛᴄʜᴇʀ</b>",
+                "<dark_gray>»</dark_gray> <gray>Wechsle die Lobby")));
+        m.put("friends", new HotbarItem(7, "PLAYER_HEAD", "<dark_gray>-●</dark_gray> <dark_aqua><b>ꜰʀᴇᴜɴᴅᴇ</b>",
                 "<dark_gray>»</dark_gray> <gray>Freunde, Party & Clan"));
-        m.put("lottery", new HotbarItem(6, "NAME_TAG", "<dark_gray>-●</dark_gray> <yellow><b>ʟᴏᴛᴛᴇʀɪᴇ</b>",
-                "<dark_gray>»</dark_gray> <gray>Du hast <yellow>{lose}</yellow> <gray>Lose"));
-        m.put("extras", new HotbarItem(7, "NETHER_STAR", "<dark_gray>-●</dark_gray> <light_purple><b>ᴇxᴛʀᴀꜱ</b>",
+        m.put("lottery", disabled(new HotbarItem(6, "NAME_TAG", "<dark_gray>-●</dark_gray> <yellow><b>ʟᴏᴛᴛᴇʀɪᴇ</b>",
+                "<dark_gray>»</dark_gray> <gray>Du hast <yellow>{lose}</yellow> <gray>Lose")));
+        m.put("extras", new HotbarItem(6, "NETHER_STAR", "<dark_gray>-●</dark_gray> <light_purple><b>ᴇxᴛʀᴀꜱ</b>",
                 "<dark_gray>»</dark_gray> <gray>Wähle ein Extra aus."));
         m.put("profile", new HotbarItem(8, "PLAYER_HEAD", "<dark_gray>-●</dark_gray> <green><b>ᴘʀᴏꜰɪʟ</b>",
                 "<dark_gray>»</dark_gray> <gray>Deine Statistiken & Einstellungen"));

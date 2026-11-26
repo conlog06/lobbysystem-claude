@@ -23,6 +23,21 @@ public final class VisibilityMenu extends Menu {
         option(2, Material.RED_DYE, "<dark_gray>»</dark_gray> <red>Niemanden anzeigen", PlayerData.Visibility.NONE, data);
         set(3, new ItemBuilder(Material.NETHER_STAR).name("<dark_gray>»</dark_gray> <aqua>Aktuell: " + plugin.lobby().visibilityLabel(data.visibility()))
                 .lore("<dark_gray>»</dark_gray> <gray>Wähle unten aus, wen du sehen willst").build());
+        // Silent-Lobby (vorher eigenes Hotbar-Item)
+        if (plugin.configs().has(player, "silentlobby")) {
+            set(4, new ItemBuilder(Material.TNT).name("<dark_gray>»</dark_gray> <red>Silent-Lobby")
+                    .lore(data.silent() ? "<dark_gray>»</dark_gray> <green>Aktiv" : "<dark_gray>»</dark_gray> <gray>Aus",
+                            "<dark_gray>»</dark_gray> <gray>Allein in der Lobby – keine Spieler, kein Chat", "",
+                            "<dark_gray>»</dark_gray> <yellow>Klicke zum Umschalten")
+                    .glow(data.silent()).build(), e -> {
+                click();
+                data.silent(!data.silent());
+                plugin.configs().send(player, data.silent() ? "silent_on" : "silent_off");
+                plugin.lobby().updateVisibility();
+                plugin.lobby().giveHotbar(player);
+                refresh();
+            });
+        }
     }
 
     private void option(int slot, Material mat, String name, PlayerData.Visibility v, PlayerData data) {

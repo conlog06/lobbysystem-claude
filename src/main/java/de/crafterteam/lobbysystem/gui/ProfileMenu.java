@@ -80,6 +80,20 @@ public final class ProfileMenu extends Menu {
             new DailyRewardMenu(plugin, player).open();
         });
 
+        // Lotterie & Lobby-Switcher (vorher eigene Hotbar-Items)
+        set(29, new ItemBuilder(Material.NAME_TAG).name("<dark_gray>»</dark_gray> <yellow>Lotterie")
+                .lore("<dark_gray>↪</dark_gray> <gray>Du hast <yellow>" + d.lose() + "</yellow> <gray>Lose", "",
+                        "<dark_gray>»</dark_gray> <yellow>Klicke zum Öffnen").build(), e -> {
+            click();
+            new LotteryMenu(plugin, player).open();
+        });
+        set(33, new ItemBuilder(Material.END_CRYSTAL).name("<dark_gray>»</dark_gray> <aqua>Lobby wechseln")
+                .lore("<dark_gray>↪</dark_gray> <gray>Alle Lobbys mit Spielerzahl", "",
+                        "<dark_gray>»</dark_gray> <yellow>Klicke zum Öffnen").build(), e -> {
+            click();
+            LobbySwitcherMenu.open(plugin, player);
+        });
+
         TITLES = plugin.configs().cfg().integrations.games;
         // ---- Spielmodus-Stats
         int[] slots = {20, 21, 22, 23, 24};

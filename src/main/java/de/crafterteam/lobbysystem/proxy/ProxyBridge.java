@@ -117,8 +117,24 @@ public final class ProxyBridge implements PluginMessageListener {
                         int eq = pair.indexOf('=');
                         if (eq > 0) commands.put(pair.substring(0, eq), pair.substring(eq + 1));
                     }
+                    String serverName = in.available() > 0 ? in.readUTF() : "";
+                    // echten Namen aus der Proxy-Config übernehmen (Lobby-Switcher, Freunde-Status, Party)
+                    var cfg = plugin.configs().cfg();
+                    if (!serverName.isBlank() && !serverName.equals(cfg.proxyServerName)) {
+                        plugin.getLogger().info("Servername vom Proxy übernommen: " + serverName + " (config.json: " + cfg.proxyServerName + ")");
+                        cfg.proxyServerName = serverName;
+                    }
                     if (!helloReceived) plugin.getLogger().info("BungeeSystem erkannt – Module: " + mods);
                     helloReceived = true;
+                    // Antwort: eigenes Chat-Format (Rang-Badges) + welche Datenbank genutzt wird
+                    var my = cfg.mysql;
+                    send(carrier, "SERVER_INFO", out -> {
+                        out.writeUTF("LobbySystem");
+                        out.writeUTF(plugin.getPluginMeta().getVersion());
+                        out.writeBoolean(cfg.chat.enabled);
+                        out.writeUTF(my.enabled ? "mysql" : "sqlite");
+                        out.writeUTF(my.enabled ? my.host + ":" + my.port + "/" + my.database : "plugins/LobbySystem/data.db");
+                    });
                 }
                 case "ONLINETIME" -> onlineTime.put(UUID.fromString(in.readUTF()), in.readLong());
                 case "CLANTAG" -> {

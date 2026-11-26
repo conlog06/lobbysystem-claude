@@ -72,6 +72,22 @@ public final class ConfigManager {
             config.migrations.add("navigator_missilewars");
             changed = true;
         }
+        if (!config.migrations.contains("hotbar_cleanup_2_7")) {
+            // Hotbar aufräumen: 0 Navigator · 1 Sichtbarkeit · 4 Gadget · 6 Extras · 7 Freunde · 8 Profil
+            for (String key : new String[]{"silentlobby", "lobbyswitcher", "lottery"}) {
+                PluginConfig.HotbarItem h = config.hotbar.get(key);
+                if (h != null) h.enabled = false;
+            }
+            int[][] slots = {{0}, {1}, {4}, {6}, {7}, {8}};
+            String[] keys = {"navigator", "visibility", "gadget", "extras", "friends", "profile"};
+            for (int i = 0; i < keys.length; i++) {
+                PluginConfig.HotbarItem h = config.hotbar.get(keys[i]);
+                if (h != null) h.slot = slots[i][0];
+            }
+            config.migrations.add("hotbar_cleanup_2_7");
+            plugin.getLogger().info("Hotbar aufgeräumt (Silent-Lobby, Lobby-Switcher & Lotterie jetzt in den Menüs).");
+            changed = true;
+        }
         if (changed) write("config.json", GSON.toJson(config));
     }
 
