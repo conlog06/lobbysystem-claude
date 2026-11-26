@@ -199,11 +199,17 @@ public final class ConfigManager {
         public String color;
         /** Anzeige im Scoreboard */
         public String display;
+        /**
+         * Rang-Badge aus dem Ressourcenpaket: owner, leitung, admin, dev, mod, sup, builder, content, youtuber,
+         * premiumplus, premium, vip, spieler, team – leer = automatisch nach Rangname, "none" = kein Badge.
+         */
+        public String badge;
 
         public Rank() {
         }
 
         Rank(String name, String permission, int priority, String prefix, String color, String display) {
+            this.badge = "";
             this.name = name;
             this.permission = permission;
             this.priority = priority;

@@ -116,6 +116,89 @@ ICONS = [
     ("gem", "", gem()),
 ]
 
+# ---------------------------------------------------------------- Rang-Badges
+# 5x7-Pixelschrift (doppelte Auflösung: Badge 16 px hoch → im Spiel 8 px, gestochen scharf)
+FONT = {
+ "A": [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+ "B": ["####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."],
+ "C": [".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."],
+ "D": ["####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."],
+ "E": ["#####", "#....", "#....", "####.", "#....", "#....", "#####"],
+ "F": ["#####", "#....", "#....", "####.", "#....", "#....", "#...."],
+ "G": [".###.", "#...#", "#....", "#.###", "#...#", "#...#", ".####"],
+ "H": ["#...#", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+ "I": ["###", ".#.", ".#.", ".#.", ".#.", ".#.", "###"],
+ "J": ["..###", "...#.", "...#.", "...#.", "#..#.", "#..#.", ".##.."],
+ "K": ["#...#", "#..#.", "#.#..", "##...", "#.#..", "#..#.", "#...#"],
+ "L": ["#....", "#....", "#....", "#....", "#....", "#....", "#####"],
+ "M": ["#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#"],
+ "N": ["#...#", "##..#", "#.#.#", "#..##", "#...#", "#...#", "#...#"],
+ "O": [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+ "P": ["####.", "#...#", "#...#", "####.", "#....", "#....", "#...."],
+ "Q": [".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#"],
+ "R": ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"],
+ "S": [".####", "#....", "#....", ".###.", "....#", "....#", "####."],
+ "T": ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
+ "U": ["#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+ "V": ["#...#", "#...#", "#...#", "#...#", "#...#", ".#.#.", "..#.."],
+ "W": ["#...#", "#...#", "#...#", "#.#.#", "#.#.#", "#.#.#", ".#.#."],
+ "X": ["#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "#...#"],
+ "Y": ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."],
+ "Z": ["#####", "....#", "...#.", "..#..", ".#...", "#....", "#####"],
+ "+": [".....", "..#..", "..#..", "#####", "..#..", "..#..", "....."],
+ " ": ["..", "..", "..", "..", "..", "..", ".."],
+}
+
+def shade(c, f):
+    return tuple(max(0, min(255, int(v * f))) for v in c[:3]) + (255,)
+
+def badge(text, color):
+    """Abgerundetes Badge: Farbverlauf, dunkler Rand, weiße Schrift mit Schatten."""
+    widths = [len(FONT[ch][0]) for ch in text]
+    tw = sum(widths) + len(text) - 1
+    W, H = tw + 10, 16
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    border = shade(color, 0.55)
+    d.rounded_rectangle((0, 0, W - 1, H - 1), radius=3, fill=border)
+    for y in range(1, H - 1):
+        f = 1.25 - 0.45 * (y / (H - 2))          # oben heller, unten dunkler
+        d.line((1, y, W - 2, y), fill=shade(color, f))
+    # Ecken innen sauber halten
+    d.rounded_rectangle((1, 1, W - 2, H - 2), radius=2, outline=None)
+    px(d, [(1, 1), (W - 2, 1), (1, H - 2), (W - 2, H - 2)], border)
+    x, y0 = 5, 4
+    for ch, w in zip(text, widths):
+        rows = FONT[ch]
+        for ry, row in enumerate(rows):
+            for rx, v in enumerate(row):
+                if v == "#":
+                    d.point((x + rx + 1, y0 + ry + 1), fill=shade(color, 0.35))   # Schatten
+        for ry, row in enumerate(rows):
+            for rx, v in enumerate(row):
+                if v == "#":
+                    d.point((x + rx, y0 + ry), fill=(255, 255, 255, 255))
+        x += w + 1
+    return im
+
+# key, Zeichen, Text, Farbe  (Keys passen automatisch zu den Rangnamen in ranks.json)
+BADGES = [
+    ("owner",       "", "OWNER",    (170, 0, 0)),
+    ("leitung",     "", "LEITUNG",  (170, 0, 0)),
+    ("admin",       "", "ADMIN",    (220, 40, 40)),
+    ("dev",         "", "DEV",      (0, 150, 170)),
+    ("mod",         "", "MOD",      (0, 140, 40)),
+    ("sup",         "", "SUP",      (40, 170, 70)),
+    ("builder",     "", "BUILDER",  (200, 160, 0)),
+    ("content",     "", "CONTENT",  (150, 60, 200)),
+    ("youtuber",    "", "YOUTUBER", (200, 30, 60)),
+    ("premiumplus", "", "PREMIUM+", (230, 140, 0)),
+    ("premium",     "", "PREMIUM",  (220, 160, 20)),
+    ("vip",         "", "VIP",      (60, 120, 230)),
+    ("spieler",     "", "SPIELER",  (110, 110, 120)),
+    ("team",        "", "TEAM",     (90, 60, 200)),
+]
+
 def pack_png():
     im = Image.new("RGBA", (128, 128))
     d = ImageDraw.Draw(im)
@@ -145,6 +228,10 @@ def main():
         buf = io.BytesIO(); im.save(buf, "PNG", optimize=True)
         files[f"assets/lobbysystem/textures/font/{name}.png"] = buf.getvalue()
         providers.append({"type": "bitmap", "file": f"lobbysystem:font/{name}.png", "ascent": 8, "height": 9, "chars": [ch]})
+    for key, ch, text, color in BADGES:
+        buf = io.BytesIO(); badge(text, color).save(buf, "PNG", optimize=True)
+        files[f"assets/lobbysystem/textures/font/rank/{key}.png"] = buf.getvalue()
+        providers.append({"type": "bitmap", "file": f"lobbysystem:font/rank/{key}.png", "ascent": 7, "height": 8, "chars": [ch]})
     files["assets/minecraft/font/default.json"] = json.dumps({"providers": providers}, indent=2).encode()
     buf = io.BytesIO(); pack_png().save(buf, "PNG", optimize=True)
     files["pack.png"] = buf.getvalue()

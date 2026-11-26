@@ -98,6 +98,132 @@
       "chars": [
         "\ue00a"
       ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/owner.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue100"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/leitung.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue101"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/admin.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue102"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/dev.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue103"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/mod.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue104"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/sup.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue105"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/builder.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue106"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/content.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue107"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/youtuber.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue108"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/premiumplus.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue109"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/premium.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue10a"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/vip.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue10b"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/spieler.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue10c"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/team.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue10d"
+      ]
     }
   ]
 }

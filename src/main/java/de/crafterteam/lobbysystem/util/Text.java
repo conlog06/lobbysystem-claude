@@ -35,6 +35,11 @@ public final class Text {
     /** Icon-Platzhalter {i_coin}, {i_clock} … → Glyphen aus dem Ressourcenpaket oder Unicode-Fallback. */
     private static volatile Map<String, String> icons = Map.of();
 
+    /** Icon-Markup (z. B. Rang-Badge "r_admin") oder null, wenn nicht vorhanden. */
+    public static String icon(String key) {
+        return icons.get(key);
+    }
+
     public static void icons(Map<String, String> map) {
         icons = Map.copyOf(map);
         CACHE.clear();

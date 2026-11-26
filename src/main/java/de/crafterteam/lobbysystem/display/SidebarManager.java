@@ -78,6 +78,29 @@ public final class SidebarManager {
         return fallback;
     }
 
+    /** Badge-Key passend zum Rang (Feld "badge" oder automatisch aus dem Namen). */
+    public static String badgeKey(ConfigManager.Rank rank) {
+        if (rank.badge != null && !rank.badge.isBlank()) return rank.badge.trim().toLowerCase();
+        String n = rank.name == null ? "" : rank.name.toLowerCase().replace("+", "plus").replaceAll("[^a-z]", "");
+        return switch (n) {
+            case "developer", "entwickler" -> "dev";
+            case "moderator", "srmoderator" -> "mod";
+            case "supporter", "srsupporter" -> "sup";
+            case "inhaber", "owner", "besitzer" -> "owner";
+            case "contentcreator", "creator" -> "content";
+            case "youtube", "streamer" -> "youtuber";
+            case "spieler", "default", "member", "mitglied", "user" -> "none"; // Standard-Rang ohne Badge (per "badge": "spieler" erzwingbar)
+            default -> n;
+        };
+    }
+
+    /** Prefix für Tab/Nametag/Chat: Badge-Grafik mit Pack, sonst Text-Prefix aus ranks.json. */
+    public String prefix(ConfigManager.Rank rank) {
+        String key = badgeKey(rank);
+        String icon = "none".equals(key) ? null : Text.icon("r_" + key);
+        return icon != null ? icon + " " : (rank.prefix == null ? "" : rank.prefix);
+    }
+
     public void create(Player player) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
         boards.put(player.getUniqueId(), board);
@@ -202,6 +225,7 @@ public final class SidebarManager {
                 "lose", Integer.toString(data.lose()),
                 "playtime", Text.formatDuration(data.playtime()),
                 "rank", rank.display == null ? rank.name : rank.display,
+                "rank_badge", prefix(rank),
                 "online", Integer.toString(Bukkit.getOnlinePlayers().size()),
                 "max", Integer.toString(Bukkit.getMaxPlayers()),
                 "server", c().cfg().serverName,
@@ -262,7 +286,7 @@ public final class SidebarManager {
             String rankKey = rank.name.replaceAll("[^A-Za-z0-9]", "");
             if (rankKey.length() > 6) rankKey = rankKey.substring(0, 6);
             String teamName = String.format("%03d", Math.max(0, Math.min(999, rank.priority))) + rankKey + clanTag;
-            wanted.put(target, new String[]{teamName, rank.prefix, rank.color, clanTag});
+            wanted.put(target, new String[]{teamName, prefix(rank), rank.color, clanTag});
         }
         for (Map.Entry<UUID, Scoreboard> e : boards.entrySet()) {
             Scoreboard board = e.getValue();

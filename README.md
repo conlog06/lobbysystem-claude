@@ -132,6 +132,18 @@ Beispiel: `"12;IRON_AXE;connect:CityBuild-1;<dark_gray>»</dark_gray> <dark_gree
 - Icons in allen Texten: `{i_coin} {i_clock} {i_rank} {i_clan} {i_friends} {i_party} {i_heart} {i_ticket} {i_online} {i_offline} {i_gem}`
   (ohne Pack automatisch Unicode-Ersatz). Quellen & Generator: `resourcepack/`, `tools/generate_pack.py`.
 
+### Rang-Badges
+
+Mit aktivem Ressourcenpaket (`resourcepack.enabled` + `icons`) werden die Text-Prefixe in **Tab, über dem Kopf
+und im Chat** automatisch durch Grafik-Badges ersetzt:
+
+`owner, leitung, admin, dev, mod, sup, builder, content, youtuber, premiumplus, premium, vip, spieler, team`
+
+Die Zuordnung passiert automatisch über den Rangnamen in der `ranks.json` (z. B. „Moderator“ → `mod`).
+Manuell: `"badge": "admin"` beim Rang eintragen, `"badge": "none"` = kein Badge. Ohne Pack wird der normale
+`prefix` genutzt. Platzhalter im Scoreboard: `{rank_badge}`.
+Eigene Badges: In `tools/generate_pack.py` bei `BADGES` eintragen und Pack neu bauen.
+
 ## CoinAPI (für Entwickler)
 
 ```java

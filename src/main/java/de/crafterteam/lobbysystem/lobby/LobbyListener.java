@@ -269,7 +269,7 @@ public final class LobbyListener implements Listener {
             event.viewers().removeIf(v -> v instanceof Player p && !p.equals(sender) && plugin.data().get(p).silent());
         }
         if (!c().cfg().chat.enabled) return;
-        String prefix = plugin.sidebar().rank(sender).prefix;
+        String prefix = plugin.sidebar().prefix(plugin.sidebar().rank(sender));
         String format = c().cfg().chat.format;
         event.renderer((source, displayName, message, viewer) -> {
             String before = format.substring(0, Math.max(0, format.indexOf("{message}")));
