@@ -87,7 +87,7 @@ public final class ClanManager {
             if (clan == null) cache.remove(uuid);
             else cache.put(uuid, clan);
             return null;
-        }).thenRun(() -> sync(() -> plugin.sidebar().updateTeams()));
+        }).thenRun(() -> sync(() -> plugin.sidebar().requestTeams()));
     }
 
     public void refreshAll() {

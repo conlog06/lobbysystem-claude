@@ -97,7 +97,7 @@ public final class BarManager {
         for (Player p : Bukkit.getOnlinePlayers()) {
             PlayerData data = plugin.data().get(p);
             if (!data.bars() || plugin.lobby().isBuilding(p)) continue;
-            Map<String, String> ph = plugin.sidebar().placeholders(p, data);
+            Map<String, String> ph = plugin.sidebar().cachedPlaceholders(p);
             p.sendActionBar(Text.parse(ab.format, ph));
         }
     }

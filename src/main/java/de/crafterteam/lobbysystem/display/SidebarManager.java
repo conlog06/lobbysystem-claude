@@ -6,6 +6,7 @@ import de.crafterteam.lobbysystem.config.PluginConfig;
 import de.crafterteam.lobbysystem.storage.PlayerData;
 import de.crafterteam.lobbysystem.util.Text;
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
@@ -19,14 +20,19 @@ import org.bukkit.scoreboard.Team;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Sidebar (ohne rote Zahlen dank NumberFormat.blank() – ab 1.20.3),
- * Ränge in Tab & über dem Kopf (Teams), Tablist-Header/Footer.
+ * Sidebar (ohne rote Zahlen dank NumberFormat.blank()), Ränge & Clan-Tags in Tab und über dem Kopf,
+ * Tablist-Header/Footer.
+ * <p>
+ * Performance: Platzhalter werden pro Sekunde nur EINMAL pro Spieler berechnet (auch für Actionbar),
+ * Zeilen/Tab werden nur bei Änderung neu gesendet und Team-Updates werden gebündelt (1× pro Tick).
  */
 public final class SidebarManager {
 
@@ -34,6 +40,17 @@ public final class SidebarManager {
     private final LobbySystem plugin;
     private final Map<UUID, Scoreboard> boards = new ConcurrentHashMap<>();
     private final Map<UUID, ConfigManager.Rank> ranks = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<String, String>> placeholderCache = new ConcurrentHashMap<>();
+    private final Map<UUID, String[]> lastLines = new ConcurrentHashMap<>();
+    private final Map<UUID, String> lastTab = new ConcurrentHashMap<>();
+    /** pro Board: Spieler -> Teamname (verhindert unnötige Team-Pakete) */
+    private final Map<UUID, Map<String, String>> teamOf = new ConcurrentHashMap<>();
+    private boolean teamsDirty;
+    private int seconds;
+
+    private String dateFmtKey, timeFmtKey;
+    private DateTimeFormatter dateFmt, timeFmt;
+    private ZoneId zone;
 
     public SidebarManager(LobbySystem plugin) {
         this.plugin = plugin;
@@ -49,8 +66,7 @@ public final class SidebarManager {
     }
 
     private ConfigManager.Rank resolveRank(Player player) {
-        List<ConfigManager.Rank> list = c().ranks();
-        for (ConfigManager.Rank r : list) {
+        for (ConfigManager.Rank r : c().ranks()) {
             if (r.permission == null || r.permission.isBlank() || player.hasPermission(r.permission)) return r;
         }
         ConfigManager.Rank fallback = new ConfigManager.Rank();
@@ -65,28 +81,59 @@ public final class SidebarManager {
     public void create(Player player) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
         boards.put(player.getUniqueId(), board);
+        teamOf.put(player.getUniqueId(), new ConcurrentHashMap<>());
+        lastLines.remove(player.getUniqueId());
+        lastTab.remove(player.getUniqueId());
         ranks.put(player.getUniqueId(), resolveRank(player));
         player.setScoreboard(board);
+        refreshPlaceholders(player);
         updateSidebar(player);
-        updateTeams();
         updateTab(player);
+        requestTeams();
     }
 
     public void remove(Player player) {
-        boards.remove(player.getUniqueId());
-        ranks.remove(player.getUniqueId());
-        Bukkit.getScheduler().runTask(plugin, this::updateTeams);
+        UUID id = player.getUniqueId();
+        boards.remove(id);
+        ranks.remove(id);
+        placeholderCache.remove(id);
+        lastLines.remove(id);
+        lastTab.remove(id);
+        teamOf.remove(id);
+        requestTeams();
     }
 
-    /** Wird jede Sekunde aufgerufen. */
+    /** Team-Update gebündelt im nächsten Tick ausführen (statt n× hintereinander). */
+    public void requestTeams() {
+        if (teamsDirty) return;
+        teamsDirty = true;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            teamsDirty = false;
+            updateTeams();
+        });
+    }
+
+    /** Jede Sekunde. */
     public void tick() {
+        seconds++;
         for (Player p : Bukkit.getOnlinePlayers()) {
             ConfigManager.Rank newRank = resolveRank(p);
             ConfigManager.Rank old = ranks.put(p.getUniqueId(), newRank);
-            if (old != null && !old.name.equals(newRank.name)) updateTeams();
+            if (old != null && !old.name.equals(newRank.name)) requestTeams();
+            refreshPlaceholders(p);
             updateSidebar(p);
             updateTab(p);
         }
+    }
+
+    private void refreshPlaceholders(Player p) {
+        placeholderCache.put(p.getUniqueId(), placeholders(p, plugin.data().get(p)));
+    }
+
+    /** Platzhalter aus dem Sekunden-Cache (für Actionbar & Co.). */
+    public Map<String, String> cachedPlaceholders(Player p) {
+        Map<String, String> m = placeholderCache.get(p.getUniqueId());
+        return m != null ? m : placeholders(p, plugin.data().get(p));
     }
 
     public void updateSidebar(Player player) {
@@ -97,34 +144,49 @@ public final class SidebarManager {
         Objective obj = board.getObjective(OBJECTIVE);
         if (!sb.enabled || !data.scoreboard()) {
             if (obj != null) obj.unregister();
+            lastLines.remove(player.getUniqueId());
             return;
         }
-        Map<String, String> ph = placeholders(player, data);
-        if (obj == null) {
-            obj = board.registerNewObjective(OBJECTIVE, Criteria.DUMMY, Text.parse(sb.title, ph));
-            obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-            obj.numberFormat(NumberFormat.blank());
-        } else {
-            obj.displayName(Text.parse(sb.title, ph));
-        }
+        Map<String, String> ph = cachedPlaceholders(player);
         List<String> lines = sb.lines;
         int size = Math.min(15, lines.size());
+        String title = sb.titleFrames != null && !sb.titleFrames.isEmpty()
+                ? sb.titleFrames.get(seconds % sb.titleFrames.size()) : sb.title;
+        String titleRaw = Text.apply(title, ph);
+
+        String[] last = lastLines.get(player.getUniqueId());
+        boolean fresh = obj == null || last == null || last.length != size + 1;
+        if (obj == null) {
+            obj = board.registerNewObjective(OBJECTIVE, Criteria.DUMMY, Text.parse(titleRaw));
+            obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+            obj.numberFormat(NumberFormat.blank());
+        }
+        if (fresh) {
+            last = new String[size + 1];
+            for (int i = size; i < 15; i++) {
+                if (obj.getScore("l" + i).isScoreSet()) obj.getScore("l" + i).resetScore();
+            }
+        }
+        if (!titleRaw.equals(last[size])) {
+            obj.displayName(Text.parse(titleRaw));
+            last[size] = titleRaw;
+        }
         for (int i = 0; i < size; i++) {
-            String entry = "l" + i;
-            var score = obj.getScore(entry);
-            score.setScore(size - i);
-            score.customName(Text.parse(lines.get(i), ph));
+            String raw = Text.apply(lines.get(i), ph);
+            if (raw.equals(last[i])) continue; // unverändert → kein Paket
+            var score = obj.getScore("l" + i);
+            if (last[i] == null) score.setScore(size - i);
+            score.customName(Text.parse(raw));
+            last[i] = raw;
         }
-        // überzählige Zeilen (z. B. nach Reload) entfernen
-        for (int i = size; i < 15; i++) {
-            if (obj.getScore("l" + i).isScoreSet()) obj.getScore("l" + i).resetScore();
-        }
+        lastLines.put(player.getUniqueId(), last);
     }
 
     public Map<String, String> placeholders(Player player, PlayerData data) {
         ConfigManager.Rank rank = rank(player);
         PluginConfig.ActionBar ab = c().cfg().actionbar;
-        ZonedDateTime now = ZonedDateTime.now(zone(ab.timezone));
+        formatters(ab);
+        ZonedDateTime now = ZonedDateTime.now(zone);
         var clan = plugin.clans().cached(player.getUniqueId()).orElse(null);
         int[] friends = plugin.friends().count(player.getUniqueId());
         return ConfigManager.map(
@@ -143,8 +205,30 @@ public final class SidebarManager {
                 "online", Integer.toString(Bukkit.getOnlinePlayers().size()),
                 "max", Integer.toString(Bukkit.getMaxPlayers()),
                 "server", c().cfg().serverName,
-                "date", now.format(DateTimeFormatter.ofPattern(ab.dateFormat)),
-                "time", now.format(DateTimeFormatter.ofPattern(ab.timeFormat)));
+                "ping", Integer.toString(player.getPing()),
+                "date", now.format(dateFmt),
+                "time", now.format(timeFmt));
+    }
+
+    /** Formatter nur neu bauen, wenn sich die Config geändert hat. */
+    private void formatters(PluginConfig.ActionBar ab) {
+        if (!Objects.equals(dateFmtKey, ab.dateFormat + ab.timezone) || dateFmt == null) {
+            dateFmtKey = ab.dateFormat + ab.timezone;
+            dateFmt = safePattern(ab.dateFormat, "dd.MM.yyyy");
+            zone = zone(ab.timezone);
+        }
+        if (!Objects.equals(timeFmtKey, ab.timeFormat) || timeFmt == null) {
+            timeFmtKey = ab.timeFormat;
+            timeFmt = safePattern(ab.timeFormat, "HH:mm:ss");
+        }
+    }
+
+    private static DateTimeFormatter safePattern(String p, String fallback) {
+        try {
+            return DateTimeFormatter.ofPattern(p);
+        } catch (Exception e) {
+            return DateTimeFormatter.ofPattern(fallback);
+        }
     }
 
     static ZoneId zone(String id) {
@@ -158,35 +242,50 @@ public final class SidebarManager {
     public void updateTab(Player player) {
         PluginConfig.Tablist tab = c().cfg().tablist;
         if (!tab.enabled) return;
-        Map<String, String> ph = placeholders(player, plugin.data().get(player));
-        player.sendPlayerListHeaderAndFooter(Text.parse(tab.header, ph), Text.parse(tab.footer, ph));
+        Map<String, String> ph = cachedPlaceholders(player);
+        String header = Text.apply(tab.header, ph), footer = Text.apply(tab.footer, ph);
+        String key = header + "\u0000" + footer;
+        if (key.equals(lastTab.get(player.getUniqueId()))) return;
+        lastTab.put(player.getUniqueId(), key);
+        player.sendPlayerListHeaderAndFooter(Text.parse(header), Text.parse(footer));
     }
 
-    /** Teams auf allen Boards aktualisieren: sortierter Tab + Prefix über dem Kopf. */
+    /** Teams auf allen Boards: sortierter Tab + Prefix/Clan-Tag über dem Kopf. Nur Änderungen werden gesendet. */
     public void updateTeams() {
+        List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
+        // Teamname pro Spieler einmal berechnen
+        Map<Player, String[]> wanted = new java.util.HashMap<>();
+        for (Player target : online) {
+            ConfigManager.Rank rank = rank(target);
+            var clan = plugin.clans().cached(target.getUniqueId()).orElse(null);
+            String clanTag = clan == null ? "" : clan.tag();
+            String rankKey = rank.name.replaceAll("[^A-Za-z0-9]", "");
+            if (rankKey.length() > 6) rankKey = rankKey.substring(0, 6);
+            String teamName = String.format("%03d", Math.max(0, Math.min(999, rank.priority))) + rankKey + clanTag;
+            wanted.put(target, new String[]{teamName, rank.prefix, rank.color, clanTag});
+        }
         for (Map.Entry<UUID, Scoreboard> e : boards.entrySet()) {
             Scoreboard board = e.getValue();
-            for (Player target : Bukkit.getOnlinePlayers()) {
-                ConfigManager.Rank rank = rank(target);
-                var clan = plugin.clans().cached(target.getUniqueId()).orElse(null);
-                String clanTag = clan == null ? "" : clan.tag();
-                String rankKey = rank.name.replaceAll("[^A-Za-z0-9]", "");
-                if (rankKey.length() > 6) rankKey = rankKey.substring(0, 6);
-                String teamName = String.format("%03d", Math.max(0, Math.min(999, rank.priority))) + rankKey + clanTag;
-                Team team = board.getTeam(teamName);
+            Map<String, String> assigned = teamOf.computeIfAbsent(e.getKey(), k -> new ConcurrentHashMap<>());
+            for (Player target : online) {
+                String[] w = wanted.get(target);
+                if (w[0].equals(assigned.get(target.getName()))) continue; // schon korrekt
+                Team team = board.getTeam(w[0]);
                 if (team == null) {
-                    team = board.registerNewTeam(teamName);
+                    team = board.registerNewTeam(w[0]);
+                    team.prefix(Text.parse(w[1]));
+                    team.suffix(w[3].isEmpty() ? Component.empty()
+                            : Text.parse(c().cfg().social.clanSuffix, ConfigManager.map("tag", w[3])));
+                    team.color(color(w[2]));
                 }
-                team.prefix(Text.parse(rank.prefix));
-                team.suffix(clan == null ? net.kyori.adventure.text.Component.empty()
-                        : Text.parse(c().cfg().social.clanSuffix, ConfigManager.map("tag", clan.tag())));
-                team.color(color(rank.color));
                 Team current = board.getEntryTeam(target.getName());
                 if (current != null && !current.equals(team)) current.removeEntry(target.getName());
-                if (!team.hasEntry(target.getName())) team.addEntry(target.getName());
+                team.addEntry(target.getName());
+                assigned.put(target.getName(), w[0]);
             }
-            // leere Teams aufräumen
-            for (Team t : new java.util.ArrayList<>(board.getTeams())) if (t.getEntries().isEmpty()) t.unregister();
+            // offline gegangene Spieler & leere Teams aufräumen
+            assigned.keySet().removeIf(name -> Bukkit.getPlayerExact(name) == null);
+            for (Team t : new ArrayList<>(board.getTeams())) if (t.getEntries().isEmpty()) t.unregister();
         }
     }
 

@@ -28,6 +28,9 @@ public final class SettingsMenu extends Menu {
             if (!d.bars()) player.sendActionBar(net.kyori.adventure.text.Component.empty());
         });
         toggle(16, Material.IRON_BOOTS, "Doppelsprung", d::doubleJump, d::doubleJump, () -> plugin.lobby().applyDoubleJump(player, d));
+        if (plugin.configs().perm("fly") != null && plugin.configs().has(player, "fly")) {
+            toggle(22, Material.ELYTRA, "Fliegen", d::fly, d::fly, () -> plugin.lobby().applyDoubleJump(player, d));
+        }
         fill(Material.GRAY_STAINED_GLASS_PANE);
     }
 

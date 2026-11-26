@@ -72,6 +72,7 @@ public final class PlayerDataManager {
                         ins.setString(2, name);
                         ins.setString(3, data.settingsString());
                         ins.executeUpdate();
+                        data.firstJoin(true);
                     }
                 }
             }

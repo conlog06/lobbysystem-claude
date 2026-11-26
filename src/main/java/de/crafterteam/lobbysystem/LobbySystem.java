@@ -56,6 +56,8 @@ public final class LobbySystem extends JavaPlugin {
     private ClanManager clans;
     private ServerRegistry servers;
     private ResourcePackManager pack;
+    private de.crafterteam.lobbysystem.display.LeaderboardManager leaderboards;
+    private de.crafterteam.lobbysystem.lobby.SitListener sit;
     private boolean started;
 
     @Override
@@ -95,6 +97,8 @@ public final class LobbySystem extends JavaPlugin {
         bars = new BarManager(this);
         cosmetics = new CosmeticManager(this);
         npcs = new NpcManager(this);
+        leaderboards = new de.crafterteam.lobbysystem.display.LeaderboardManager(this);
+        sit = new de.crafterteam.lobbysystem.lobby.SitListener(this);
 
         var pm = getServer().getPluginManager();
         pm.registerEvents(new LobbyListener(this), this);
@@ -102,11 +106,13 @@ public final class LobbySystem extends JavaPlugin {
         pm.registerEvents(cosmetics, this);
         pm.registerEvents(npcs, this);
         pm.registerEvents(pack, this);
+        pm.registerEvents(leaderboards, this);
+        pm.registerEvents(sit, this);
 
         getServer().getMessenger().registerOutgoingPluginChannel(this, LobbyManager.BUNGEE_CHANNEL);
 
         LobbyCommands commands = new LobbyCommands(this);
-        for (String cmd : new String[]{"build", "lobbycoins", "setreward", "setsettings", "setspawn", "setwarp", "warp", "spawn", "tpcoord", "lobbysystem", "lobbyswitcher"}) {
+        for (String cmd : new String[]{"build", "lobbycoins", "setreward", "setsettings", "setspawn", "setwarp", "warp", "spawn", "tpcoord", "lobbysystem", "lobbyswitcher", "pay", "setleaderboard"}) {
             register(cmd, commands);
         }
         register("license", new LicenseCommand(this));
@@ -189,8 +195,11 @@ public final class LobbySystem extends JavaPlugin {
         }, 20L, 20L);
         // jeden Tick: Ballone & Partikel
         Bukkit.getScheduler().runTaskTimer(this, cosmetics::tick, 1L, 1L);
-        // alle 2 Sekunden: NPCs prüfen
+        // alle 2 Sekunden: NPCs prüfen, alle 5 Sekunden: Bestenlisten-Hologramme
         Bukkit.getScheduler().runTaskTimer(this, npcs::tick, 40L, 40L);
+        Bukkit.getScheduler().runTaskTimer(this, leaderboards::tick, 100L, 100L);
+        long lbTicks = Math.max(10, configs.cfg().leaderboards.updateSeconds) * 20L;
+        Bukkit.getScheduler().runTaskTimer(this, leaderboards::refresh, 60L, lbTicks);
         // jede Minute: Spielzeit, Freunde-Zähler, Clan-Cache, Party-Aufräumen
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (Player p : Bukkit.getOnlinePlayers()) data.get(p).addPlaytime(60);
@@ -215,7 +224,10 @@ public final class LobbySystem extends JavaPlugin {
 
     public void reload() {
         configs.loadAll();
+        de.crafterteam.lobbysystem.util.Text.clearCache();
         cosmetics.reload();
+        leaderboards.despawnAll();
+        leaderboards.refresh();
         bars.reload();
         pack.start();
         applyWorldRules();
@@ -238,6 +250,8 @@ public final class LobbySystem extends JavaPlugin {
         Bukkit.getScheduler().cancelTasks(this);
         cosmetics.shutdown();
         npcs.despawnAll();
+        leaderboards.despawnAll();
+        sit.shutdown();
         for (Player p : Bukkit.getOnlinePlayers()) {
             bars.hide(p);
             cosmetics.clear(p);
@@ -310,6 +324,10 @@ public final class LobbySystem extends JavaPlugin {
 
     public ServerRegistry servers() {
         return servers;
+    }
+
+    public de.crafterteam.lobbysystem.display.LeaderboardManager leaderboards() {
+        return leaderboards;
     }
 
     public ResourcePackManager pack() {

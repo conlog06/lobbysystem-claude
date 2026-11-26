@@ -110,6 +110,9 @@ public final class LobbyListener implements Listener {
         plugin.sidebar().remove(player);
         plugin.lobby().quit(player);
         jumpCooldown.remove(player.getUniqueId());
+        padCooldown.remove(player.getUniqueId());
+        lastChat.remove(player.getUniqueId());
+        lastMessage.remove(player.getUniqueId());
         plugin.data().offline(player.getUniqueId(), c().cfg().proxyServerName);
         plugin.friends().announce(player, false);
         plugin.friends().forget(player.getUniqueId());
@@ -137,6 +140,9 @@ public final class LobbyListener implements Listener {
                 && event.getClickedBlock().getType().isInteractable())) {
             event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
         }
+        // Rechtsklick auf Treppe/Stufe = Hinsetzen (SitListener) statt Hotbar-Menü
+        if (a == Action.RIGHT_CLICK_BLOCK && !player.isSneaking() && c().cfg().sit.enabled && event.getClickedBlock() != null
+                && SitListener.isSeatBlock(event.getClickedBlock())) return;
         ItemStack item = event.getItem();
         String tag = Keys.itemTag(item);
         if (tag == null) return;
@@ -199,6 +205,51 @@ public final class LobbyListener implements Listener {
 
     // ---------------------------------------------------------------- Chat
 
+    private final Map<UUID, Long> lastChat = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<UUID, String> lastMessage = new java.util.concurrent.ConcurrentHashMap<>();
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onChatFilter(AsyncChatEvent event) {
+        Player sender = event.getPlayer();
+        PluginConfig.Chat chat = c().cfg().chat;
+        String plain = Text.plain(event.message()).trim();
+        if (!c().has(sender, "chat_bypass") || c().perm("chat_bypass") == null) {
+            long now = System.currentTimeMillis();
+            if (lastChat.getOrDefault(sender.getUniqueId(), 0L) + (long) (chat.cooldownSeconds * 1000) > now) {
+                event.setCancelled(true);
+                c().send(sender, "chat_cooldown");
+                return;
+            }
+            if (chat.blockRepeat && plain.equalsIgnoreCase(lastMessage.get(sender.getUniqueId()))) {
+                event.setCancelled(true);
+                c().send(sender, "chat_repeat");
+                return;
+            }
+            lastChat.put(sender.getUniqueId(), now);
+            lastMessage.put(sender.getUniqueId(), plain);
+        }
+        // Wortfilter
+        for (String word : chat.filter) {
+            if (word == null || word.isBlank()) continue;
+            event.message(event.message().replaceText(b -> b.match("(?i)" + java.util.regex.Pattern.quote(word))
+                    .replacement("*".repeat(Math.max(3, word.length())))));
+        }
+        // Erwähnungen
+        if (!chat.mentions) return;
+        for (Player target : org.bukkit.Bukkit.getOnlinePlayers()) {
+            if (target.equals(sender)) continue;
+            java.util.regex.Pattern pat = java.util.regex.Pattern.compile("(?i)@?\\b" + java.util.regex.Pattern.quote(target.getName()) + "\\b");
+            if (!pat.matcher(plain).find()) continue;
+            event.message(event.message().replaceText(b -> b.match(pat)
+                    .replacement(Text.parse(chat.mentionFormat, ConfigManager.map("name", target.getName())))));
+            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!target.isOnline() || plugin.data().get(target).silent()) return;
+                target.playSound(target.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.8f, 1.8f);
+                target.sendActionBar(Text.parse(c().raw("mentioned"), ConfigManager.map("name", sender.getName())));
+            });
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onChat(AsyncChatEvent event) {
         Player sender = event.getPlayer();
@@ -225,9 +276,10 @@ public final class LobbyListener implements Listener {
     public void onToggleFlight(PlayerToggleFlightEvent event) {
         Player player = event.getPlayer();
         if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
+        PlayerData data = plugin.data().get(player);
+        if (plugin.lobby().canFly(player, data)) return; // normales Fliegen
         event.setCancelled(true);
         player.setFlying(false);
-        PlayerData data = plugin.data().get(player);
         if (!data.doubleJump() || !c().has(player, "doublejump")) {
             player.setAllowFlight(false);
             return;
@@ -246,8 +298,11 @@ public final class LobbyListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {
-        Player player = event.getPlayer();
+        Location from = event.getFrom();
         Location to = event.getTo();
+        // Performance: nur reagieren, wenn sich die Block-Position geändert hat (Kopfdrehen ignorieren)
+        if (from.getBlockX() == to.getBlockX() && from.getBlockY() == to.getBlockY() && from.getBlockZ() == to.getBlockZ()) return;
+        Player player = event.getPlayer();
         if (to.getY() < prot().voidY) {
             plugin.lobby().teleportSpawn(player, false);
             return;
@@ -256,7 +311,8 @@ public final class LobbyListener implements Listener {
         if (!player.getAllowFlight()
                 && player.getGameMode() != GameMode.CREATIVE && player.getGameMode() != GameMode.SPECTATOR
                 && !player.isInsideVehicle() && isOnGround(player)
-                && plugin.data().get(player).doubleJump() && c().has(player, "doublejump")) {
+                && plugin.data().get(player).doubleJump() && c().has(player, "doublejump")
+                && !plugin.lobby().canFly(player, plugin.data().get(player))) {
             player.setAllowFlight(true);
         }
     }

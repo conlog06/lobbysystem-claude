@@ -182,6 +182,8 @@ public final class ConfigManager {
         public SLoc spawn;
         public SLoc reward;
         public SLoc settings;
+        /** Bestenlisten: Typ (coins, playtime, streak, friends) -> Position */
+        public Map<String, SLoc> leaderboards = new LinkedHashMap<>();
         public List<String> info = new ArrayList<>(List.of(
                 "Hier werden Spawn & NPC-Positionen gespeichert. Bitte über /setspawn, /setreward, /setsettings ändern."));
     }

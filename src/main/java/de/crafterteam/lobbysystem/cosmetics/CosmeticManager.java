@@ -59,6 +59,7 @@ public final class CosmeticManager implements Listener {
     public void reload() {
         PluginConfig.Cosmetics c = plugin.configs().cfg().cosmetics;
         cosmetics.clear();
+        particleCache.clear();
         load(Cosmetic.Category.HEAD, c.heads);
         load(Cosmetic.Category.GADGET, c.gadgets);
         load(Cosmetic.Category.BALLOON, c.balloons);
@@ -237,18 +238,27 @@ public final class CosmeticManager implements Listener {
         }
     }
 
+    private static final Particle.DustOptions STRING_DUST = new Particle.DustOptions(Color.fromRGB(235, 235, 235), 0.35f);
+
+    /** Zuschauer einmal pro Besitzer bestimmen (statt pro Partikel). */
+    private List<Player> viewers(Player owner, double radiusSq) {
+        List<Player> out = new ArrayList<>();
+        Location base = owner.getLocation();
+        for (Player viewer : owner.getWorld().getPlayers()) {
+            if (viewer.getLocation().distanceSquared(base) <= radiusSq && plugin.lobby().canSee(viewer, owner)) out.add(viewer);
+        }
+        return out;
+    }
+
     private void drawString(Player p, Location balloon) {
+        List<Player> viewers = viewers(p, 900);
+        if (viewers.isEmpty()) return;
         Location hand = p.getLocation().add(0, 1.0, 0);
         Vector diff = balloon.toVector().subtract(hand.toVector());
-        Particle.DustOptions dust = new Particle.DustOptions(Color.fromRGB(235, 235, 235), 0.35f);
         int points = 7;
         for (int i = 1; i < points; i++) {
             Location pt = hand.clone().add(diff.clone().multiply(i / (double) points));
-            for (Player viewer : p.getWorld().getPlayers()) {
-                if (viewer.getLocation().distanceSquared(pt) < 900 && plugin.lobby().canSee(viewer, p)) {
-                    viewer.spawnParticle(Particle.DUST, pt, 1, 0, 0, 0, 0, dust);
-                }
-            }
+            for (Player viewer : viewers) viewer.spawnParticle(Particle.DUST, pt, 1, 0, 0, 0, 0, STRING_DUST);
         }
     }
 
@@ -256,23 +266,10 @@ public final class CosmeticManager implements Listener {
         if (plugin.lobby().isBuilding(p)) return;
         Cosmetic c = selected(p, Cosmetic.Category.PARTICLE);
         if (c == null || !owns(p, c)) return;
-        String data = c.data().isBlank() ? "HEART" : c.data();
-        Particle particle;
-        Object extra = null;
-        try {
-            if (data.toUpperCase().startsWith("DUST")) {
-                particle = Particle.DUST;
-                Color color = Color.RED;
-                int idx = data.indexOf('#');
-                if (idx >= 0) color = Color.fromRGB(Integer.parseInt(data.substring(idx + 1, Math.min(data.length(), idx + 7)), 16));
-                extra = new Particle.DustOptions(color, 1.1f);
-            } else {
-                particle = Particle.valueOf(data.toUpperCase());
-                if (particle.getDataType() != Void.class) return; // Partikel mit Pflichtdaten werden nicht unterstützt
-            }
-        } catch (Exception e) {
-            return;
-        }
+        Object[] parsed = particleCache.computeIfAbsent(c.fullId(), k -> parseParticle(c));
+        if (parsed == null || parsed.length == 0) return;
+        Particle particle = (Particle) parsed[0];
+        Object extra = parsed[1];
         double angle = (ticks / 3.0) * 0.45;
         Location base = p.getLocation();
         boolean moving = p.getVelocity().clone().setY(0).lengthSquared() > 0.003;
@@ -285,12 +282,32 @@ public final class CosmeticManager implements Listener {
                 points.add(base.clone().add(Math.cos(a) * 0.7, 0.2 + (Math.sin(angle * 0.5) + 1) * 0.9, Math.sin(a) * 0.7));
             }
         }
-        for (Player viewer : p.getWorld().getPlayers()) {
-            if (viewer.getLocation().distanceSquared(base) > 2304 || !plugin.lobby().canSee(viewer, p)) continue;
+        for (Player viewer : viewers(p, 2304)) {
             for (Location pt : points) {
                 if (extra != null) viewer.spawnParticle(particle, pt, 1, 0, 0, 0, 0, extra);
                 else viewer.spawnParticle(particle, pt, 1, 0.05, 0.05, 0.05, 0);
             }
+        }
+    }
+
+    private final Map<String, Object[]> particleCache = new HashMap<>();
+
+    /** Partikel aus der Config einmal parsen und cachen. */
+    private Object[] parseParticle(Cosmetic c) {
+        String data = c.data().isBlank() ? "HEART" : c.data();
+        try {
+            if (data.toUpperCase().startsWith("DUST")) {
+                Color color = Color.RED;
+                int idx = data.indexOf('#');
+                if (idx >= 0) color = Color.fromRGB(Integer.parseInt(data.substring(idx + 1, Math.min(data.length(), idx + 7)), 16));
+                return new Object[]{Particle.DUST, new Particle.DustOptions(color, 1.1f)};
+            }
+            Particle particle = Particle.valueOf(data.toUpperCase());
+            if (particle.getDataType() != Void.class) return new Object[0]; // Partikel mit Pflichtdaten nicht unterstützt
+            return new Object[]{particle, null};
+        } catch (Exception e) {
+            plugin.getLogger().warning("Unbekannter Partikel bei Cosmetic " + c.id() + ": " + data);
+            return new Object[0];
         }
     }
 

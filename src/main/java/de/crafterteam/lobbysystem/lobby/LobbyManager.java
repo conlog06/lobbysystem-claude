@@ -77,6 +77,20 @@ public final class LobbyManager {
 
     public void welcome(Player player) {
         PluginConfig.Join j = c().cfg().join;
+        PlayerData data = plugin.data().get(player);
+        if (data.firstJoin()) {
+            data.firstJoin(false);
+            if (j.firstJoinCoins > 0) plugin.coins().change(player.getUniqueId(), j.firstJoinCoins, "first_join");
+            if (j.firstJoinBroadcast != null && !j.firstJoinBroadcast.isBlank()) {
+                String name = player.getName();
+                plugin.database().submit(con -> {
+                    try (var ps = con.prepareStatement("select count(*) from ls_players"); var rs = ps.executeQuery()) {
+                        return rs.next() ? rs.getLong(1) : 0L;
+                    }
+                }).thenAccept(n -> Bukkit.getScheduler().runTask(plugin, () -> Bukkit.broadcast(Text.parse(
+                        c().cfg().prefix + j.firstJoinBroadcast, ConfigManager.map("name", name, "number", Text.formatNumber(n))))));
+            }
+        }
         Map<String, String> ph = ConfigManager.map("name", player.getName(), "server", c().cfg().serverName);
         if (!j.title.isBlank() || !j.subtitle.isBlank()) {
             player.showTitle(Title.title(Text.parse(j.title, ph), Text.parse(j.subtitle, ph),
@@ -159,9 +173,18 @@ public final class LobbyManager {
 
     public void applyDoubleJump(Player player, PlayerData data) {
         if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
+        if (canFly(player, data)) {
+            player.setAllowFlight(true);
+            return;
+        }
         boolean allowed = data.doubleJump() && c().has(player, "doublejump");
         player.setAllowFlight(allowed);
         player.setFlying(false);
+    }
+
+    /** Fliegen (Premium-Einstellung) hat Vorrang vor dem Doppelsprung. */
+    public boolean canFly(Player player, PlayerData data) {
+        return data.fly() && c().perm("fly") != null && c().has(player, "fly");
     }
 
     // ---------------------------------------------------------------- Sichtbarkeit

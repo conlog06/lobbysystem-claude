@@ -64,6 +64,8 @@ public final class LobbyCommands implements TabExecutor {
                 if (p != null) plugin.lobby().teleportSpawn(p, true);
             }
             case "tpcoord" -> tpCoord(sender, args);
+            case "pay" -> pay(sender, args);
+            case "setleaderboard" -> setLeaderboard(sender, args);
             case "lobbyswitcher" -> {
                 Player p = player(sender);
                 if (p != null) de.crafterteam.lobbysystem.gui.LobbySwitcherMenu.open(plugin, p);
@@ -159,6 +161,63 @@ public final class LobbyCommands implements TabExecutor {
             if (err != null || r == null || r.isEmpty()) c().send(sender, "player_not_found", "name", name);
             else c().send(sender, key, "name", res.get().name(), "amount", Text.formatNumber(finalAmount));
         }));
+    }
+
+    // ---------------------------------------------------------------- /pay & Bestenlisten
+
+    private void pay(CommandSender sender, String[] args) {
+        Player p = player(sender);
+        if (p == null || !check(sender, "pay")) return;
+        if (args.length < 2) {
+            usage(sender, "/pay <Spieler> <Coins>");
+            return;
+        }
+        long amount;
+        try {
+            amount = Long.parseLong(args[1]);
+            if (amount <= 0) throw new NumberFormatException();
+        } catch (NumberFormatException e) {
+            c().send(p, "invalid_number");
+            return;
+        }
+        if (args[0].equalsIgnoreCase(p.getName())) {
+            c().send(p, "pay_self");
+            return;
+        }
+        if (plugin.data().get(p).coins() < amount) {
+            c().send(p, "pay_not_enough");
+            return;
+        }
+        plugin.data().lookup(args[0]).thenAccept(opt -> sync(() -> {
+            if (opt.isEmpty()) {
+                c().send(p, "player_not_found", "name", args[0]);
+                return;
+            }
+            var target = opt.get();
+            plugin.coins().transfer(p.getUniqueId(), target.uuid(), amount, "pay").thenAccept(ok -> sync(() -> {
+                if (!ok) {
+                    c().send(p, "pay_not_enough");
+                    return;
+                }
+                String amt = Text.formatNumber(amount);
+                c().send(p, "pay_sent", "name", target.name(), "amount", amt);
+                plugin.messenger().send(target.name(), c().msg("pay_received", "name", p.getName(), "amount", amt));
+            }));
+        }));
+    }
+
+    private void setLeaderboard(CommandSender sender, String[] args) {
+        Player p = player(sender);
+        if (p == null || !check(sender, "setleaderboard")) return;
+        boolean remove = args.length >= 2 && args[0].equalsIgnoreCase("remove");
+        var type = args.length == 0 ? null : de.crafterteam.lobbysystem.display.LeaderboardManager.Type.parse(remove ? args[1] : args[0]);
+        if (type == null) {
+            usage(sender, "/setleaderboard [remove] <coins|playtime|streak|friends>");
+            c().send(p, "leaderboard_types");
+            return;
+        }
+        plugin.leaderboards().set(type, remove ? null : p.getLocation());
+        c().send(p, remove ? "leaderboard_removed" : "leaderboard_set", "type", type.name().toLowerCase());
     }
 
     // ---------------------------------------------------------------- NPCs, Spawn, Warps
@@ -329,6 +388,19 @@ public final class LobbyCommands implements TabExecutor {
             }
             case "lobbysystem" -> {
                 if (args.length == 1) return Cmds.filter(List.of("reload", "info"), args[0]);
+            }
+            case "pay" -> {
+                if (args.length == 1) return Cmds.players(args[0]);
+                if (args.length == 2) return Cmds.filter(List.of("10", "100", "1000"), args[1]);
+            }
+            case "setleaderboard" -> {
+                List<String> types = List.of("coins", "playtime", "streak", "friends");
+                if (args.length == 1) {
+                    List<String> l = new ArrayList<>(types);
+                    l.add("remove");
+                    return Cmds.filter(l, args[0]);
+                }
+                if (args.length == 2 && args[0].equalsIgnoreCase("remove")) return Cmds.filter(types, args[1]);
             }
             default -> {
             }

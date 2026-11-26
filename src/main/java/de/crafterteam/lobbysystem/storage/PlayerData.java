@@ -24,6 +24,9 @@ public final class PlayerData {
     private volatile boolean bars = true;
     private volatile boolean tpEffects = true;
     private volatile boolean silent = false;
+    private volatile boolean fly = false;
+    /** true beim allerersten Join (nicht gespeichert) */
+    private volatile boolean firstJoin = false;
     private volatile Visibility visibility = Visibility.ALL;
 
     /** Kategorie -> Cosmetic-ID */
@@ -46,7 +49,7 @@ public final class PlayerData {
 
     public String settingsString() {
         return "dj=" + b(doubleJump) + ";sb=" + b(scoreboard) + ";bars=" + b(bars) + ";tp=" + b(tpEffects)
-                + ";silent=" + b(silent) + ";vis=" + visibility.name();
+                + ";silent=" + b(silent) + ";fly=" + b(fly) + ";vis=" + visibility.name();
     }
 
     public void loadSettings(String s) {
@@ -56,6 +59,7 @@ public final class PlayerData {
         bars = !"0".equals(m.get("bars"));
         tpEffects = !"0".equals(m.get("tp"));
         silent = "1".equals(m.get("silent"));
+        fly = "1".equals(m.get("fly"));
         try {
             visibility = Visibility.valueOf(m.getOrDefault("vis", "ALL"));
         } catch (IllegalArgumentException e) {
@@ -161,6 +165,10 @@ public final class PlayerData {
     public void tpEffects(boolean v) { tpEffects = v; dirty = true; }
     public boolean silent() { return silent; }
     public void silent(boolean v) { silent = v; dirty = true; }
+    public boolean fly() { return fly; }
+    public void fly(boolean v) { fly = v; dirty = true; }
+    public boolean firstJoin() { return firstJoin; }
+    public void firstJoin(boolean v) { firstJoin = v; }
     public Visibility visibility() { return visibility; }
     public void visibility(Visibility v) { visibility = v; dirty = true; }
 

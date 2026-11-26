@@ -59,6 +59,12 @@ commands:
     description: Öffnet den Lobby-Switcher
     usage: /lobbyswitcher
     aliases: [lobbies, hubs]
+  pay:
+    description: Coins an einen Spieler überweisen
+    usage: /pay <Spieler> <Coins>
+  setleaderboard:
+    description: Setzt oder entfernt eine Bestenliste (Hologramm)
+    usage: /setleaderboard [remove] <coins|playtime|streak|friends>
   lobbysystem:
     description: Infos & Reload
     usage: /lobbysystem <reload|info>

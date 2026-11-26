@@ -37,6 +37,7 @@ public final class Text {
 
     public static void icons(Map<String, String> map) {
         icons = Map.copyOf(map);
+        CACHE.clear();
     }
 
     private static String icons(String s) {
@@ -45,13 +46,23 @@ public final class Text {
         return s;
     }
 
+    /** Parse-Cache: Components sind unveränderlich, häufige Texte (Items, Titel, Prefixe) werden nur 1× geparst. */
+    private static final java.util.concurrent.ConcurrentHashMap<String, Component> CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final int CACHE_MAX = 2048;
+
+    public static void clearCache() {
+        CACHE.clear();
+    }
+
     public static Component parse(String s) {
         if (s == null || s.isEmpty()) return Component.empty();
-        s = icons(s);
-        if (isLegacy(s)) {
-            return LEGACY.deserialize(AMP_CODE.matcher(s).replaceAll("§$1"));
-        }
-        return MM.deserialize(s);
+        Component cached = CACHE.get(s);
+        if (cached != null) return cached;
+        String in = icons(s);
+        Component out = isLegacy(in) ? LEGACY.deserialize(AMP_CODE.matcher(in).replaceAll("§$1")) : MM.deserialize(in);
+        if (CACHE.size() >= CACHE_MAX) CACHE.clear();
+        CACHE.put(s, out);
+        return out;
     }
 
     /** Ersetzt {key}-Platzhalter. Werte werden für MiniMessage escaped (keine Tag-Injection über Namen). */

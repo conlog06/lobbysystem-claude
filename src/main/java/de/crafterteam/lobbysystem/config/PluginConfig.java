@@ -50,6 +50,8 @@ public class PluginConfig {
     public JumpPads jumpPads = new JumpPads();
     public Broadcast broadcast = new Broadcast();
     public Speed speed = new Speed();
+    public Leaderboards leaderboards = new Leaderboards();
+    public Sit sit = new Sit();
 
     public Map<String, String> messages = defaultMessages();
 
@@ -87,6 +89,12 @@ public class PluginConfig {
     public static class Scoreboard {
         public boolean enabled = true;
         public String title = "<gradient:#ffb347:#ffcc33><b>ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ</b></gradient>";
+        /** Animierter Titel: Frames wechseln jede Sekunde (leer = statischer Titel) */
+        public List<String> titleFrames = new ArrayList<>(List.of(
+                "<gradient:#ffb347:#ffcc33><b>ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ</b></gradient>",
+                "<gradient:#ffcc33:#ffb347><b>ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ</b></gradient>",
+                "<gradient:#ffffff:#ffcc33><b>ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ</b></gradient>",
+                "<gradient:#ffcc33:#ffffff><b>ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ</b></gradient>"));
         public List<String> lines = new ArrayList<>(List.of(
                 "<dark_gray>●</dark_gray> {i_coin} <gray>ᴄᴏɪɴꜱ",
                 "<dark_gray>↪</dark_gray> <green>{coins}",
@@ -138,6 +146,15 @@ public class PluginConfig {
     public static class Chat {
         public boolean enabled = true;
         public String format = "{prefix}<white>{name}</white> <dark_gray>»</dark_gray> <gray>{message}";
+        /** Sekunden zwischen zwei Nachrichten (Bypass-Permission: chat_bypass) */
+        public double cooldownSeconds = 2.0;
+        /** Gleiche Nachricht zweimal hintereinander blockieren */
+        public boolean blockRepeat = true;
+        /** @Name / Name im Chat hervorheben + Ping-Sound */
+        public boolean mentions = true;
+        public String mentionFormat = "<yellow>@{name}</yellow>";
+        /** Wörter, die durch *** ersetzt werden (Groß-/Kleinschreibung egal) */
+        public List<String> filter = new ArrayList<>();
     }
 
     public static class Join {
@@ -147,6 +164,9 @@ public class PluginConfig {
         public String title = "<gradient:#00d2ff:#3a7bd5><b>ᴡɪʟʟᴋᴏᴍᴍᴇɴ</b></gradient>";
         public String subtitle = "<gray>auf <white>{server}";
         public boolean firework = false;
+        /** Startguthaben + Willkommensnachricht für neue Spieler */
+        public long firstJoinCoins = 500;
+        public String firstJoinBroadcast = "<gray>Willkommen <white>{name}</white> <gray>auf dem Server! <dark_gray>(</dark_gray><gold>#{number}</gold><dark_gray>)";
     }
 
     public static class DailyReward {
@@ -230,6 +250,22 @@ public class PluginConfig {
                 "<gray>Spiele mit Freunden zusammen: <light_purple>/party invite <Name>",
                 "<gray>Hol dir jeden Tag deine Belohnung – mit <yellow>Streak-Bonus</yellow><gray>!"
         ));
+    }
+
+    public static class Leaderboards {
+        public int updateSeconds = 60;
+        public int size = 10;
+        public String header = "<gradient:#f7971e:#ffd200><b>ᴛᴏᴘ {size}</b></gradient> <dark_gray>»</dark_gray> {title}";
+        public String line = "<gray>#{place}</gray> <white>{name}</white> <dark_gray>»</dark_gray> <yellow>{value}";
+        /** Farben für Platz 1–3 */
+        public List<String> podium = new ArrayList<>(List.of("<gold>", "<white>", "<#cd7f32>"));
+        public String empty = "<gray>Noch keine Einträge";
+    }
+
+    public static class Sit {
+        /** Rechtsklick auf Treppen/Stufen zum Hinsetzen */
+        public boolean enabled = true;
+        public double yOffset = 0.3;
     }
 
     public static class Speed {
@@ -361,6 +397,11 @@ public class PluginConfig {
         m.put("suffix_party", "");
         m.put("suffix_jumppad", "");
         m.put("suffix_broadcast_bypass", "broadcast.bypass");
+        m.put("suffix_setleaderboard", "setleaderboard");
+        m.put("suffix_pay", "");
+        m.put("suffix_fly", "fly");
+        m.put("suffix_chat_bypass", "chat.bypass");
+        m.put("suffix_sit", "");
         return m;
     }
 
@@ -515,6 +556,17 @@ public class PluginConfig {
         m.put("clan_info", "<white>{clan}</white> <dark_gray>[</dark_gray><yellow>{tag}</yellow><dark_gray>]</dark_gray> <dark_gray>|</dark_gray> <gray>Mitglieder: <white>{count}</white><dark_gray>/</dark_gray><white>{max}</white>");
         m.put("clan_member_entry", "<dark_gray> » </dark_gray>{status} <white>{name}</white> <dark_gray>|</dark_gray> <gold>{role}");
         // ---- Sonstiges
+        m.put("pay_sent", "<gray>Du hast <white>{name}</white> {i_coin} <yellow>{amount} Coins</yellow> <gray>überwiesen.");
+        m.put("pay_received", "<white>{name}</white> <gray>hat dir {i_coin} <yellow>{amount} Coins</yellow> <gray>überwiesen.");
+        m.put("pay_self", "<red>Du kannst dir nicht selbst Coins senden.");
+        m.put("pay_not_enough", "<red>Du hast nicht genug Coins.");
+        m.put("leaderboard_set", "<green>Bestenliste <white>{type}</white> <green>wurde gesetzt.");
+        m.put("leaderboard_removed", "<red>Bestenliste <white>{type}</white> <red>wurde entfernt.");
+        m.put("leaderboard_types", "<gray>Typen: <white>coins, playtime, streak, friends");
+        m.put("chat_cooldown", "<red>Bitte warte kurz, bevor du wieder schreibst.");
+        m.put("chat_repeat", "<red>Bitte wiederhole dich nicht.");
+        m.put("mentioned", "<yellow>{name}</yellow> <gray>hat dich im Chat erwähnt!");
+        m.put("fly_on", "<gray>Fliegen {state}");
         m.put("lobby_switch_same", "<red>Du bist bereits auf dieser Lobby.");
         m.put("streak", "<gray>Login-Streak: <gold>{streak} Tage</gold> <dark_gray>(</dark_gray><yellow>+{bonus} Bonus-Coins</yellow><dark_gray>)");
         m.put("state_on", "<green>aktiviert");
