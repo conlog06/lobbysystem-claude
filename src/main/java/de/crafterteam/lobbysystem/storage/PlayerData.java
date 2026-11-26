@@ -34,6 +34,10 @@ public final class PlayerData {
     private final Set<String> owned = ConcurrentHashMap.newKeySet();
 
     private volatile int streak;
+    private volatile long xp;
+    private volatile double cookies;
+    /** Cookie-Clicker: Upgrades & Statistik ("cursor=3;grandma=1;baked=12345;sold=20;day=20261126") */
+    private final Map<String, Long> cookieData = new ConcurrentHashMap<>();
     private volatile boolean friendRequests = true;
     private volatile boolean partyInvites = true;
     private volatile boolean friendNotify = true;
@@ -182,6 +186,34 @@ public final class PlayerData {
     public Set<String> owned() { return Collections.unmodifiableSet(owned); }
     public boolean owns(String id) { return owned.contains(id); }
     public void addOwned(String id) { owned.add(id); dirty = true; }
+
+    private volatile long xpDelta;
+    public long xp() { return xp; }
+    public void loadXp(long v) { xp = Math.max(0, v); }
+    public synchronized void addXp(long v) { xp = Math.max(0, xp + v); xpDelta += v; dirty = true; }
+    public synchronized long drainXp() { long d = xpDelta; xpDelta = 0; return d; }
+    public double cookies() { return cookies; }
+    public synchronized void cookies(double v) { cookies = Math.max(0, v); dirty = true; }
+    public synchronized void addCookies(double v) { cookies = Math.max(0, cookies + v); dirty = true; }
+    public long cookie(String key) { return cookieData.getOrDefault(key, 0L); }
+    public void cookie(String key, long v) { cookieData.put(key, v); dirty = true; }
+
+    public String cookieString() {
+        StringBuilder sb = new StringBuilder();
+        cookieData.forEach((k, v) -> sb.append(k).append('=').append(v).append(';'));
+        return sb.toString();
+    }
+
+    public void loadCookies(double value, String data) {
+        cookies = value;
+        cookieData.clear();
+        parse(data).forEach((k, v) -> {
+            try {
+                cookieData.put(k, Long.parseLong(v));
+            } catch (NumberFormatException ignored) {
+            }
+        });
+    }
 
     public int streak() { return streak; }
     public void streak(int v) { streak = Math.max(0, v); dirty = true; }

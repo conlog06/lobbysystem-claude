@@ -6,7 +6,7 @@
 
     <groupId>de.crafterteam</groupId>
     <artifactId>lobbysystem</artifactId>
-    <version>2.5.0</version>
+    <version>2.6.0</version>
     <packaging>jar</packaging>
     <name>LobbySystem</name>
 
@@ -27,6 +27,10 @@
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
         <repository>
+            <id>jitpack</id>
+            <url>https://jitpack.io</url>
+        </repository>
+        <repository>
             <id>papermc</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
@@ -37,6 +41,26 @@
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
             <version>${paper.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- optional: Coins als Vault-Economy -->
+        <dependency>
+            <groupId>com.github.MilkBowl</groupId>
+            <artifactId>VaultAPI</artifactId>
+            <version>1.7.1</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.bukkit</groupId>
+                    <artifactId>bukkit</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- optional: Ränge aus LuckPerms (Maven Central) -->
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+            <version>5.4</version>
             <scope>provided</scope>
         </dependency>
         <!-- optional: PlaceholderAPI-Expansion %lobbysystem_...% -->

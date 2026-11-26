@@ -35,7 +35,7 @@ Lotterie, Scoreboard, Tablist, Bossbar, Actionbar und Lizenzsystem.
 > ihren Namen aus der BungeeCord/Velocity-Config eintragen (z. B. `Lobby-1`). Nachrichten an Spieler auf anderen
 > Servern gehen über den Proxy (BungeeCord-Channel, funktioniert auch mit Velocity).
 
-## Neu in 2.5 – BungeeSystem-Integration
+## Neu in 2.6 – BungeeSystem-Integration
 
 Mit dem [BungeeSystem](https://github.com/conlog06/bungeesystem-crafterteam) auf dem Proxy (gleiche MySQL-Datenbank) wird es automatisch erkannt
 (`"bungeeSystem": { "mode": "auto" }` – `on`/`off` erzwingt es):
@@ -50,6 +50,39 @@ Mit dem [BungeeSystem](https://github.com/conlog06/bungeesystem-crafterteam) auf
 - **Report, Ban, Mute** kommen komplett vom Proxy; GUIs zeigt das BungeeSystem-Addon
 - `/coins`, `/advert`, Bug-Belohnungen vom Proxy buchen über den Coin-Cache der Lobby; `/hub` bzw. `/l` in der Lobby = Spawn
 
+## Neu in 2.5
+
+**Aufgeräumt:** Die `config.json` ist jetzt in 10 Bereiche sortiert (Allgemein · Datenbank & Rechte · Anzeigen ·
+Hotbar & Navigator · Lobby · Belohnungen & Progression · Cosmetics · Freunde/Party/Clan · Integrationen · Nachrichten).
+Bestehende Configs werden beim Start automatisch umsortiert – deine Werte bleiben erhalten.
+
+**Lobby-Level:** XP aus Spielzeit (2/min), täglicher Belohnung, Cookie Clicker und Spielmodi (API).
+Level-Up gibt Coins (Level × 50), Titel & Effekte, Ansage alle 10 Level. Level + Fortschritt in der XP-Leiste.
+`/level [Spieler]`, Platzhalter `{level}`, `{xp}`, `{xp_needed}`, `{xp_bar}`, Bestenliste `/setleaderboard level`.
+
+**Cookie Clicker** (`/cookie`, oder im Profil): großer Keks mit kritischen Klicks, 8 Upgrades (Cursor, Oma, Farm, Mine,
+Fabrik, Bank, Tempel, Goldene Backform), passive Produktion jede Sekunde, **goldene Kekse**, Kekse → XP,
+Tausch in Coins mit Tageslimit, Bestenliste `/setleaderboard cookies`. Anti-Autoklicker (max. 20 Klicks/s).
+
+**Integrationen**
+| | |
+|---|---|
+| **Vault** | Lobby-Coins als Economy → Shop-, Jobs-, Crate-Plugins nutzen sie direkt (`integrations.vault`) |
+| **LuckPerms** | Ränge direkt aus LuckPerms: Gruppe, Prefix, Gewichtung, Badge automatisch (`integrations.luckPermsRanks`) |
+| **Game-Modus** | `"mode": "game"` auf Spielservern (BedWars, SkyWars …): nur Brücke – Coins/Vault, `/friend` `/party` `/clan`, Online-Status, Stats-API. Keine Hotbar, kein Schutz, kein Scoreboard. |
+| **GameAPI** | `LobbySystemAPI.game()` – Status (Wartet/Läuft) für den Navigator, Stats, Level, Lobby-XP |
+| **Bestenlisten** | jeder Spielmodus: `/setleaderboard <spiel>_<wins\|kills\|deaths\|games\|level>` |
+| **PlaceholderAPI** | neu: `%lobbysystem_level%`, `_xp`, `_cookies` |
+
+```java
+GameAPI game = LobbySystemAPI.game();
+game.setGame("bedwars");
+game.setState(GameAPI.INGAME);
+game.addStats(uuid, name, 1, 5, 2, 1);   // +Sieg, +Kills, +Tode, +Runde
+game.addXp(uuid, 25);                    // Lobby-XP
+LobbySystemAPI.coins().addCoins(uuid, 50, "bedwars_win");
+```
+
 ## Neu in 2.4 – MissileWars-Integration
 
 Zusammen mit [MissileWars 2.9+](https://github.com/conlog06/missile-wars) (gleiche MySQL-Datenbank, dort `lobbysystem.enabled: true`):
@@ -58,7 +91,7 @@ Zusammen mit [MissileWars 2.9+](https://github.com/conlog06/missile-wars) (gleic
 - **Navigator mit Live-Daten** – `connect-best:MissileWars` schickt in die beste Runde (wartende zuerst),
   Platzhalter `{players:MissileWars*}`, `{max:…}`, `{state:…}` (aktualisiert sich alle 2 s, solange offen)
 - **Freunde** sehen „MissileWars-1" als Standort und können per `/friend jump` nachkommen; Party folgt dem Leader
-- **Bestenlisten:** `/setleaderboard mw_wins|mw_kills|mw_level`
+- **Bestenlisten:** `/setleaderboard missilewars_wins|missilewars_kills|missilewars_level`
 - **Profil** zeigt MissileWars-Stats (Level, Siege, Winrate, K/D)
 - PlaceholderAPI: `%lobbysystem_players_MissileWars*%`, `%lobbysystem_state_MissileWars*%`
 

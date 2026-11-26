@@ -11,15 +11,13 @@ import java.util.Map;
  */
 public class PluginConfig {
 
+    // ════════════════════════ 1. ALLGEMEIN ════════════════════════
     public String license = "HIER-DEINE-LIZENZ-EINTRAGEN";
 
-    /** Intern: bereits durchgeführte Config-Updates (nicht ändern) */
-    public List<String> migrations = new ArrayList<>();
-
-    public MySql mysql = new MySql();
+    /** lobby = komplettes LobbySystem · game = nur Brücke auf Spielservern (Coins, Freunde/Party/Clan, Stats-API, Online-Status) */
+    public String mode = "lobby";
 
     public String prefix = "<gradient:#00d2ff:#3a7bd5><b>ʟᴏʙʙʏ</b></gradient> <dark_gray>»</dark_gray> <gray>";
-
     public String serverName = "ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ";
 
     /** Name DIESES Servers im BungeeCord/Velocity (für Freunde-Status, Lobby-Switcher, Party-Nachziehen). */
@@ -27,38 +25,59 @@ public class PluginConfig {
     /** Server, die im Lobby-Switcher erscheinen, beginnen mit diesem Namen. */
     public String lobbyPrefix = "Lobby";
 
+    // ════════════════════════ 2. DATENBANK & RECHTE ════════════════════════
+    public MySql mysql = new MySql();
+
     /** Gesamt-Permission = prefix + "." + suffix_xyz (leerer Suffix = jeder darf). */
     public Map<String, String> permissions = defaultPermissions();
 
-    public String navigatorTitle = "<dark_gray>↪</dark_gray> <gradient:#00d2ff:#3a7bd5>ɴᴀᴠɪɢᴀᴛᴏʀ</gradient>";
-    public int navigatorRows = 6;
-    /** Slot;MATERIAL;Ziel;Name;Lore  — Ziel: warp:Name | connect:Server | spawn | command:befehl */
-    public List<String> navigatorItems = defaultNavigator();
-
-    public Map<String, HotbarItem> hotbar = defaultHotbar();
-
+    // ════════════════════════ 3. ANZEIGEN ════════════════════════
     public Scoreboard scoreboard = new Scoreboard();
     public Tablist tablist = new Tablist();
     public BossBarSettings bossbar = new BossBarSettings();
     public ActionBar actionbar = new ActionBar();
+    public Broadcast broadcast = new Broadcast();
     public Chat chat = new Chat();
+    public ResourcePack resourcepack = new ResourcePack();
+
+    // ════════════════════════ 4. HOTBAR & NAVIGATOR ════════════════════════
+    public Map<String, HotbarItem> hotbar = defaultHotbar();
+    public String navigatorTitle = "<dark_gray>↪</dark_gray> <gradient:#00d2ff:#3a7bd5>ɴᴀᴠɪɢᴀᴛᴏʀ</gradient>";
+    public int navigatorRows = 6;
+    /** Slot;MATERIAL;Ziel;Name;Lore  — Ziel: warp:Name | connect:Server | connect-best:MissileWars | spawn | command:befehl */
+    public List<String> navigatorItems = defaultNavigator();
+
+    // ════════════════════════ 5. LOBBY ════════════════════════
     public Join join = new Join();
+    public Protection protection = new Protection();
+    public DoubleJump doubleJump = new DoubleJump();
+    public JumpPads jumpPads = new JumpPads();
+    public Speed speed = new Speed();
+    public Sit sit = new Sit();
+
+    // ════════════════════════ 6. BELOHNUNGEN & PROGRESSION ════════════════════════
     public DailyReward dailyReward = new DailyReward();
     public Lottery lottery = new Lottery();
-    public DoubleJump doubleJump = new DoubleJump();
-    public Protection protection = new Protection();
-    public Cosmetics cosmetics = new Cosmetics();
-    public Social social = new Social();
-    public ResourcePack resourcepack = new ResourcePack();
-    public JumpPads jumpPads = new JumpPads();
-    public Broadcast broadcast = new Broadcast();
-    public Speed speed = new Speed();
+    public Levels levels = new Levels();
+    public CookieClicker cookieClicker = new CookieClicker();
     public Leaderboards leaderboards = new Leaderboards();
-    public Sit sit = new Sit();
+
+    // ════════════════════════ 7. COSMETICS ════════════════════════
+    public Cosmetics cosmetics = new Cosmetics();
+
+    // ════════════════════════ 8. FREUNDE · PARTY · CLAN ════════════════════════
+    public Social social = new Social();
+
+    // ════════════════════════ 9. INTEGRATIONEN ════════════════════════
+    public Integrations integrations = new Integrations();
     /** Anbindung an das BungeeSystem (Proxy-Plugin) */
     public BungeeSystem bungeeSystem = new BungeeSystem();
 
+    // ════════════════════════ 10. NACHRICHTEN ════════════════════════
     public Map<String, String> messages = defaultMessages();
+
+    /** Intern: bereits durchgeführte Config-Updates (nicht ändern) */
+    public List<String> migrations = new ArrayList<>();
 
     // ------------------------------------------------------------------ Sektionen
 
@@ -281,6 +300,47 @@ public class PluginConfig {
         public double yOffset = 0.3;
     }
 
+    public static class Levels {
+        public boolean enabled = true;
+        /** XP für Level n → n+1 = base + (n-1) * step */
+        public int base = 100;
+        public int step = 50;
+        public int xpPerMinute = 2;
+        public int xpDailyReward = 50;
+        /** Coins pro Level-Up = Level × coinsPerLevel */
+        public int coinsPerLevel = 50;
+        /** Level in der XP-Leiste anzeigen */
+        public boolean expBar = true;
+        /** Ab diesem Level wird ein Level-Up im ganzen Chat angesagt (alle X Level) */
+        public int announceEvery = 10;
+    }
+
+    public static class CookieClicker {
+        public boolean enabled = true;
+        /** XP pro gebackenen Keksen (z. B. 10 XP je 1.000 Kekse) */
+        public int cookiesPerXp = 100;
+        /** Kritischer Klick: Chance in % und Multiplikator */
+        public double critChance = 4.0;
+        public int critMultiplier = 10;
+        /** Goldener Keks erscheint im Menü mit dieser Chance pro Sekunde (%) */
+        public double goldenChance = 1.5;
+        /** Kekse in Coins tauschen: so viele Kekse = 1 Coin (0 = aus) */
+        public long cookiesPerCoin = 1000;
+        public long maxCoinsPerDay = 500;
+    }
+
+    public static class Integrations {
+        /** Coins als Vault-Economy für andere Plugins (Shops, Jobs …) – benötigt Vault */
+        public boolean vault = true;
+        /** Ränge aus LuckPerms (Gruppe, Prefix, Gewichtung) statt ranks.json – benötigt LuckPerms */
+        public boolean luckPermsRanks = false;
+        /** Stats anderer Spielmodi im Profil: game-id → Anzeigename */
+        public Map<String, String> games = new LinkedHashMap<>(Map.of(
+                "missilewars", "<red>Missile Wars",
+                "bedwars", "<red>BedWars",
+                "skywars", "<aqua>SkyWars"));
+    }
+
     public static class Speed {
         /** Leichter Speed-Effekt in der Lobby (0 = aus) */
         public int level = 1;
@@ -415,6 +475,7 @@ public class PluginConfig {
         m.put("suffix_fly", "fly");
         m.put("suffix_chat_bypass", "chat.bypass");
         m.put("suffix_sit", "");
+        m.put("suffix_cookie", "");
         return m;
     }
 
@@ -576,11 +637,20 @@ public class PluginConfig {
         m.put("pay_not_enough", "<red>Du hast nicht genug Coins.");
         m.put("leaderboard_set", "<green>Bestenliste <white>{type}</white> <green>wurde gesetzt.");
         m.put("leaderboard_removed", "<red>Bestenliste <white>{type}</white> <red>wurde entfernt.");
-        m.put("leaderboard_types", "<gray>Typen: <white>coins, playtime, streak, friends, mw_wins, mw_kills, mw_level");
+        m.put("leaderboard_types", "<gray>Typen: <white>coins, playtime, streak, level, cookies, friends, <spiel>_wins/kills/deaths/games/level (z. B. missilewars_wins)");
         m.put("chat_cooldown", "<red>Bitte warte kurz, bevor du wieder schreibst.");
         m.put("chat_repeat", "<red>Bitte wiederhole dich nicht.");
         m.put("mentioned", "<yellow>{name}</yellow> <gray>hat dich im Chat erwähnt!");
         m.put("fly_on", "<gray>Fliegen {state}");
+        // ---- Level & Cookie Clicker
+        m.put("level_up", "<gradient:#f7971e:#ffd200><b>ʟᴇᴠᴇʟ ᴜᴘ!</b></gradient> <gray>Du bist jetzt <gold>Level {level}</gold> <dark_gray>(</dark_gray><yellow>+{coins} Coins</yellow><dark_gray>)");
+        m.put("level_broadcast", "<white>{name}</white> <gray>hat <gold>Level {level}</gold> <gray>erreicht!");
+        m.put("level_info", "<white>{name}</white> <dark_gray>»</dark_gray> <gold>Level {level}</gold> <dark_gray>(</dark_gray><yellow>{xp}</yellow><dark_gray>/</dark_gray><yellow>{needed} XP</yellow><dark_gray>)</dark_gray><newline>{bar}");
+        m.put("cookie_bought", "<gray>Gekauft: <white>{upgrade}</white> <dark_gray>(</dark_gray><gold>{amount}×</gold><dark_gray>)");
+        m.put("cookie_not_enough", "<red>Dir fehlen <gold>{missing} Kekse</gold><red>.");
+        m.put("cookie_golden", "<gold><b>ɢᴏʟᴅᴇɴᴇʀ ᴋᴇᴋꜱ!</b></gold> <gray>+<gold>{cookies} Kekse");
+        m.put("cookie_sold", "<gray>Du hast <gold>{cookies} Kekse</gold> <gray>gegen {i_coin} <yellow>{coins} Coins</yellow> <gray>getauscht.");
+        m.put("cookie_sell_limit", "<red>Tageslimit erreicht – morgen kannst du wieder Kekse tauschen.");
         m.put("game_offline", "<red>Aktuell ist kein <white>{game}</white><red>-Server erreichbar.");
         m.put("lobby_switch_same", "<red>Du bist bereits auf dieser Lobby.");
         m.put("streak", "<gray>Login-Streak: <gold>{streak} Tage</gold> <dark_gray>(</dark_gray><yellow>+{bonus} Bonus-Coins</yellow><dark_gray>)");

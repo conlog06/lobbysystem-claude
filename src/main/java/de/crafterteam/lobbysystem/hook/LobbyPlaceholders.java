@@ -64,6 +64,9 @@ public final class LobbyPlaceholders extends PlaceholderExpansion {
                 yield s >= 0 ? Text.formatDuration(s) : d == null ? "-" : Text.formatDuration(d.playtime());
             }
             case "streak" -> d == null ? "0" : Integer.toString(d.streak());
+            case "level" -> d == null ? "1" : Integer.toString(plugin.levels().level(d.xp()));
+            case "xp" -> d == null ? "0" : Long.toString(d.xp());
+            case "cookies" -> d == null ? "0" : de.crafterteam.lobbysystem.progression.CookieManager.format(d.cookies());
             case "rank" -> player == null ? "" : plugin.sidebar().rank(player).name;
             case "clan_tag" -> clan == null ? "" : clan.tag();
             case "clan_name" -> clan == null ? "" : clan.name();

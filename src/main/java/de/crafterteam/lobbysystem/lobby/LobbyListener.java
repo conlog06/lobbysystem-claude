@@ -111,6 +111,7 @@ public final class LobbyListener implements Listener {
         plugin.lobby().quit(player);
         jumpCooldown.remove(player.getUniqueId());
         padCooldown.remove(player.getUniqueId());
+        plugin.cookies().quit(player.getUniqueId());
         lastChat.remove(player.getUniqueId());
         lastMessage.remove(player.getUniqueId());
         plugin.data().offline(player.getUniqueId(), c().cfg().proxyServerName);

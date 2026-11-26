@@ -65,6 +65,8 @@ public final class PlayerDataManager {
                     data.loadOwned(rs.getString("owned"));
                     data.streak(rs.getInt("streak"));
                     data.loadFriendSettings(rs.getString("friend_settings"));
+                    data.loadXp(rs.getLong("xp"));
+                    data.loadCookies(rs.getDouble("cookies"), rs.getString("cookie_data"));
                 } else {
                     try (PreparedStatement ins = con.prepareStatement(
                             "insert into ls_players (uuid, name, settings, selected, owned) values (?, ?, ?, '', '')")) {
@@ -99,17 +101,18 @@ public final class PlayerDataManager {
         data.clean();
         long[] deltas = data.drainDeltas();
         long playtime = data.drainPlaytime();
+        long xpDelta = data.drainXp();
         long absoluteCoins = data.coins();
         return db.submit(con -> {
-            write(con, data, deltas, playtime, absoluteCoins);
+            write(con, data, deltas, playtime, absoluteCoins, xpDelta);
             return null;
         });
     }
 
-    private void write(Connection con, PlayerData d, long[] deltas, long playtime, long absoluteCoins) throws SQLException {
+    private void write(Connection con, PlayerData d, long[] deltas, long playtime, long absoluteCoins, long xpDelta) throws SQLException {
         String coinsSql = deltas[2] == 1 ? "coins = ?" : "coins = coins + ?";
         try (PreparedStatement ps = con.prepareStatement("update ls_players set name = ?, " + coinsSql
-                + ", lose = lose + ?, playtime = playtime + ?, last_daily = ?, last_premium = ?, settings = ?, selected = ?, owned = ?, streak = ?, friend_settings = ? where uuid = ?")) {
+                + ", lose = lose + ?, playtime = playtime + ?, last_daily = ?, last_premium = ?, settings = ?, selected = ?, owned = ?, streak = ?, friend_settings = ?, xp = xp + ?, cookies = ?, cookie_data = ? where uuid = ?")) {
             ps.setString(1, d.name());
             ps.setLong(2, deltas[2] == 1 ? absoluteCoins : deltas[0]);
             ps.setLong(3, deltas[1]);
@@ -121,7 +124,10 @@ public final class PlayerDataManager {
             ps.setString(9, d.ownedString());
             ps.setInt(10, d.streak());
             ps.setString(11, d.friendSettingsString());
-            ps.setString(12, d.uuid().toString());
+            ps.setLong(12, xpDelta);
+            ps.setDouble(13, d.cookies());
+            ps.setString(14, d.cookieString());
+            ps.setString(15, d.uuid().toString());
             if (ps.executeUpdate() == 0) {
                 try (PreparedStatement ins = con.prepareStatement("insert into ls_players "
                         + "(uuid, name, coins, lose, playtime, last_daily, last_premium, settings, selected, owned) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {

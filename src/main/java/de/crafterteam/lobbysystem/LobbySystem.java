@@ -59,6 +59,9 @@ public final class LobbySystem extends JavaPlugin {
     private de.crafterteam.lobbysystem.display.LeaderboardManager leaderboards;
     private de.crafterteam.lobbysystem.lobby.SitListener sit;
     private de.crafterteam.lobbysystem.proxy.ProxyBridge proxy;
+    private de.crafterteam.lobbysystem.storage.GameStatsService gameStats;
+    private de.crafterteam.lobbysystem.progression.LevelManager levels;
+    private de.crafterteam.lobbysystem.progression.CookieManager cookies;
     private boolean started;
 
     @Override
@@ -84,8 +87,10 @@ public final class LobbySystem extends JavaPlugin {
         }
         getLogger().info("Datenbank verbunden: " + (database.isMySql() ? "MySQL" : "SQLite (lokal)"));
 
+        boolean lobbyMode = lobbyMode();
         data = new PlayerDataManager(this, database);
         coins = new CoinService(this);
+        gameStats = new de.crafterteam.lobbysystem.storage.GameStatsService(this);
         messenger = new Messenger(this);
         proxy = new de.crafterteam.lobbysystem.proxy.ProxyBridge(this);
         proxy.start();
@@ -93,37 +98,51 @@ public final class LobbySystem extends JavaPlugin {
         parties = new PartyManager(this);
         clans = new ClanManager(this);
         servers = new ServerRegistry(this);
+        levels = new de.crafterteam.lobbysystem.progression.LevelManager(this);
+        cookies = new de.crafterteam.lobbysystem.progression.CookieManager(this);
         pack = new ResourcePackManager(this);
-        pack.start();
         lobby = new LobbyManager(this);
         sidebar = new SidebarManager(this);
-        bars = new BarManager(this);
-        cosmetics = new CosmeticManager(this);
-        npcs = new NpcManager(this);
-        leaderboards = new de.crafterteam.lobbysystem.display.LeaderboardManager(this);
-        sit = new de.crafterteam.lobbysystem.lobby.SitListener(this);
 
         var pm = getServer().getPluginManager();
-        pm.registerEvents(new LobbyListener(this), this);
         pm.registerEvents(new MenuListener(), this);
-        pm.registerEvents(cosmetics, this);
-        pm.registerEvents(npcs, this);
-        pm.registerEvents(pack, this);
-        pm.registerEvents(leaderboards, this);
-        pm.registerEvents(sit, this);
-
         getServer().getMessenger().registerOutgoingPluginChannel(this, LobbyManager.BUNGEE_CHANNEL);
-
         LobbyCommands commands = new LobbyCommands(this);
-        for (String cmd : new String[]{"build", "lobbycoins", "setreward", "setsettings", "setspawn", "setwarp", "warp", "spawn", "tpcoord", "lobbysystem", "lobbyswitcher", "pay", "setleaderboard"}) {
-            register(cmd, commands);
-        }
-        register("license", new LicenseCommand(this));
         SocialCommands social = new SocialCommands(this);
         for (String cmd : new String[]{"friend", "party", "clan"}) register(cmd, social);
+        for (String cmd : new String[]{"lobbysystem", "pay", "level", "lobbyswitcher"}) register(cmd, commands);
+        register("license", new LicenseCommand(this));
+
+        if (lobbyMode) {
+            pack.start();
+            bars = new BarManager(this);
+            cosmetics = new CosmeticManager(this);
+            npcs = new NpcManager(this);
+            leaderboards = new de.crafterteam.lobbysystem.display.LeaderboardManager(this);
+            sit = new de.crafterteam.lobbysystem.lobby.SitListener(this);
+            pm.registerEvents(new LobbyListener(this), this);
+            pm.registerEvents(cosmetics, this);
+            pm.registerEvents(npcs, this);
+            pm.registerEvents(pack, this);
+            pm.registerEvents(leaderboards, this);
+            pm.registerEvents(sit, this);
+            for (String cmd : new String[]{"build", "lobbycoins", "setreward", "setsettings", "setspawn", "setwarp", "warp", "spawn",
+                    "tpcoord", "setleaderboard", "cookie"}) {
+                register(cmd, commands);
+            }
+        } else {
+            // Spielserver: nur Brücke (Coins, Freunde/Party/Clan, Online-Status, Stats-API)
+            pack.applyIcons();
+            servers.state(de.crafterteam.lobbysystem.api.GameAPI.WAITING);
+            servers.game(configs.cfg().proxyServerName.replaceAll("[-_ ]?\\d+$", "").toLowerCase());
+            pm.registerEvents(new de.crafterteam.lobbysystem.lobby.GameModeListener(this), this);
+            register("lobbycoins", commands);
+            getLogger().info("Modus: GAME – LobbySystem läuft als Brücke (Spielmodus: " + servers.game() + ").");
+        }
 
         // ---- API für andere Plugins
         getServer().getServicesManager().register(CoinAPI.class, coins, this, ServicePriority.Normal);
+        getServer().getServicesManager().register(de.crafterteam.lobbysystem.api.GameAPI.class, gameStats, this, ServicePriority.Normal);
         LobbySystemAPI.init(coins, new LobbySystemAPI.SocialAPI() {
             @Override
             public java.util.Optional<String> clanTag(java.util.UUID uuid) {
@@ -144,7 +163,12 @@ public final class LobbySystem extends JavaPlugin {
             public String rankName(Player player) {
                 return sidebar.rank(player).name;
             }
-        });
+
+            @Override
+            public int level(Player player) {
+                return levels.level(player);
+            }
+        }, gameStats);
         if (pm.getPlugin("PlaceholderAPI") != null) {
             try {
                 new de.crafterteam.lobbysystem.hook.LobbyPlaceholders(this).register();
@@ -153,22 +177,37 @@ public final class LobbySystem extends JavaPlugin {
                 getLogger().warning("PlaceholderAPI-Hook fehlgeschlagen: " + t.getMessage());
             }
         }
+        if (configs.cfg().integrations.vault && pm.getPlugin("Vault") != null) {
+            try {
+                de.crafterteam.lobbysystem.hook.VaultEconomy.register(this);
+            } catch (Throwable t) {
+                getLogger().warning("Vault-Hook fehlgeschlagen: " + t.getMessage());
+            }
+        }
+        if (configs.cfg().integrations.luckPermsRanks) {
+            getLogger().info(pm.getPlugin("LuckPerms") != null ? "Ränge kommen aus LuckPerms." : "luckPermsRanks aktiv, aber LuckPerms fehlt – nutze ranks.json.");
+        }
 
-        applyWorldRules();
-        startTasks();
+        if (lobbyMode) applyWorldRules();
+        startTasks(lobbyMode);
 
         // Reload-sicher: bereits verbundene Spieler übernehmen
         for (Player p : Bukkit.getOnlinePlayers()) {
             data.preloadAsync(p, () -> {
-                initPlayer(p, false);
+                if (lobbyMode) initPlayer(p, false);
                 data.presence(p.getUniqueId(), configs.cfg().proxyServerName);
                 clans.refresh(p.getUniqueId());
                 friends.refreshCount(p.getUniqueId());
             });
         }
-        npcs.cleanup();
+        if (lobbyMode) npcs.cleanup();
         started = true;
-        getLogger().info("LobbySystem v" + getPluginMeta().getVersion() + " gestartet (Paper 1.21.10 – 26.3).");
+        getLogger().info("LobbySystem v" + getPluginMeta().getVersion() + " gestartet (Paper 1.21.10 – 26.3, Modus: "
+                + (lobbyMode ? "LOBBY" : "GAME") + ").");
+    }
+
+    public boolean lobbyMode() {
+        return !"game".equalsIgnoreCase(configs.cfg().mode);
     }
 
     private void register(String name, TabExecutor executor) {
@@ -187,30 +226,34 @@ public final class LobbySystem extends JavaPlugin {
         }
     }
 
-    private void startTasks() {
-        // jede Sekunde: Scoreboard, Tab, Bossbar, Actionbar
-        Bukkit.getScheduler().runTaskTimer(this, () -> {
-            sidebar.tick();
-            bars.tick();
-            if (configs.cfg().protection.alwaysDay) {
-                for (World w : Bukkit.getWorlds()) w.setTime(6000);
-            }
-        }, 20L, 20L);
-        // jeden Tick: Ballone & Partikel
-        Bukkit.getScheduler().runTaskTimer(this, cosmetics::tick, 1L, 1L);
-        // alle 2 Sekunden: NPCs prüfen, alle 5 Sekunden: Bestenlisten-Hologramme
-        Bukkit.getScheduler().runTaskTimer(this, npcs::tick, 40L, 40L);
-        Bukkit.getScheduler().runTaskTimer(this, leaderboards::tick, 100L, 100L);
-        long lbTicks = Math.max(10, configs.cfg().leaderboards.updateSeconds) * 20L;
-        Bukkit.getScheduler().runTaskTimer(this, leaderboards::refresh, 60L, lbTicks);
-        // jede Minute: Spielzeit, Freunde-Zähler, Clan-Cache, Party-Aufräumen
+    private void startTasks(boolean lobbyMode) {
+        if (lobbyMode) {
+            // jede Sekunde: Scoreboard, Tab, Bossbar, Actionbar, Cookie-Produktion
+            Bukkit.getScheduler().runTaskTimer(this, () -> {
+                sidebar.tick();
+                bars.tick();
+                cookies.second();
+                if (configs.cfg().protection.alwaysDay) {
+                    for (World w : Bukkit.getWorlds()) w.setTime(6000);
+                }
+            }, 20L, 20L);
+            // jeden Tick: Ballone & Partikel
+            Bukkit.getScheduler().runTaskTimer(this, cosmetics::tick, 1L, 1L);
+            // alle 2 Sekunden: NPCs prüfen, alle 5 Sekunden: Bestenlisten-Hologramme
+            Bukkit.getScheduler().runTaskTimer(this, npcs::tick, 40L, 40L);
+            Bukkit.getScheduler().runTaskTimer(this, leaderboards::tick, 100L, 100L);
+            long lbTicks = Math.max(10, configs.cfg().leaderboards.updateSeconds) * 20L;
+            Bukkit.getScheduler().runTaskTimer(this, leaderboards::refresh, 60L, lbTicks);
+        }
+        // jede Minute: Spielzeit, Level-XP, Freunde-Zähler, Clan-Cache, Party-Aufräumen
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (Player p : Bukkit.getOnlinePlayers()) data.get(p).addPlaytime(60);
+            if (lobbyMode) levels.minute();
             friends.refreshAll();
             clans.refreshAll();
             parties.cleanup();
         }, 1200L, 1200L);
-        // alle 10 Sekunden: Server-Heartbeat (Lobby-Switcher, Online-Status)
+        // alle 10 Sekunden: Server-Heartbeat (Lobby-Switcher, Navigator, Online-Status)
         servers.heartbeat();
         Bukkit.getScheduler().runTaskTimer(this, servers::heartbeat, 200L, 200L);
         // alle 5 Minuten: Autosave
@@ -228,6 +271,10 @@ public final class LobbySystem extends JavaPlugin {
     public void reload() {
         configs.loadAll();
         de.crafterteam.lobbysystem.util.Text.clearCache();
+        if (!lobbyMode()) {
+            pack.applyIcons();
+            return;
+        }
         cosmetics.reload();
         leaderboards.despawnAll();
         leaderboards.refresh();
@@ -251,14 +298,16 @@ public final class LobbySystem extends JavaPlugin {
             return;
         }
         Bukkit.getScheduler().cancelTasks(this);
-        cosmetics.shutdown();
-        npcs.despawnAll();
-        leaderboards.despawnAll();
-        sit.shutdown();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            bars.hide(p);
-            cosmetics.clear(p);
-            if (lobby.isBuilding(p)) lobby.toggleBuild(p);
+        if (cosmetics != null) cosmetics.shutdown();
+        if (npcs != null) npcs.despawnAll();
+        if (leaderboards != null) leaderboards.despawnAll();
+        if (sit != null) sit.shutdown();
+        if (bars != null) {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                bars.hide(p);
+                cosmetics.clear(p);
+                if (lobby.isBuilding(p)) lobby.toggleBuild(p);
+            }
         }
         pack.stop();
         getServer().getServicesManager().unregisterAll(this);
@@ -335,6 +384,18 @@ public final class LobbySystem extends JavaPlugin {
 
     public de.crafterteam.lobbysystem.display.LeaderboardManager leaderboards() {
         return leaderboards;
+    }
+
+    public de.crafterteam.lobbysystem.progression.LevelManager levels() {
+        return levels;
+    }
+
+    public de.crafterteam.lobbysystem.progression.CookieManager cookies() {
+        return cookies;
+    }
+
+    public de.crafterteam.lobbysystem.storage.GameStatsService gameStats() {
+        return gameStats;
     }
 
     public ResourcePackManager pack() {

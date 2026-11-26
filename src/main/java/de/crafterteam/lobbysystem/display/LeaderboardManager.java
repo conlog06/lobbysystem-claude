@@ -31,38 +31,54 @@ import java.util.Map;
  */
 public final class LeaderboardManager implements Listener {
 
-    public enum Type {
-        COINS("<yellow>ᴄᴏɪɴꜱ", "select name, coins as v from ls_players order by coins desc limit ?"),
-        PLAYTIME("<aqua>ꜱᴘɪᴇʟᴢᴇɪᴛ", "select name, playtime as v from ls_players order by playtime desc limit ?"),
-        STREAK("<gold>ʟᴏɢɪɴ-ꜱᴛʀᴇᴀᴋ", "select name, streak as v from ls_players order by streak desc limit ?"),
-        FRIENDS("<dark_aqua>ꜰʀᴇᴜɴᴅᴇ", "select p.name, count(*) as v from ls_friends f join ls_players p on p.uuid = f.uuid "
-                + "group by p.uuid, p.name order by v desc limit ?"),
-        // ---- MissileWars (über die LobbySystem-Integration in ls_game_stats)
-        MW_WINS("<red>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ <dark_gray>·</dark_gray> <gray>ꜱɪᴇɢᴇ", "select name, wins as v from ls_game_stats where game = 'missilewars' order by wins desc limit ?"),
-        MW_KILLS("<red>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ <dark_gray>·</dark_gray> <gray>ᴋɪʟʟꜱ", "select name, kills as v from ls_game_stats where game = 'missilewars' order by kills desc limit ?"),
-        MW_LEVEL("<red>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ <dark_gray>·</dark_gray> <gray>ʟᴇᴠᴇʟ", "select name, level as v from ls_game_stats where game = 'missilewars' order by level desc limit ?");
+    /** Eine Bestenliste: Key (z. B. "coins", "bedwars_wins"), Titel, SQL (ein ?-Limit, optional Spiel-Parameter). */
+    public record Board(String key, String title, String sql, String gameParam, String unit) {
+    }
 
-        final String title;
-        final String sql;
+    private static final java.util.regex.Pattern GAME_KEY = java.util.regex.Pattern.compile("([a-z0-9]+)_(wins|kills|deaths|games|level)");
 
-        Type(String title, String sql) {
-            this.title = title;
-            this.sql = sql;
-        }
+    /** Löst einen Key auf: eingebaute Listen oder beliebige Spielmodi aus ls_game_stats. null = unbekannt. */
+    public Board board(String rawKey) {
+        if (rawKey == null) return null;
+        String original = rawKey.toLowerCase();
+        Board b = resolve(original);
+        return b == null ? null : new Board(original, b.title(), b.sql(), b.gameParam(), b.unit());
+    }
 
-        public static Type parse(String s) {
-            try {
-                return valueOf(s.toUpperCase());
-            } catch (Exception e) {
-                return null;
+    private Board resolve(String key) {
+        // Kompatibilität zu 2.4: mw_wins → missilewars_wins
+        if (key.startsWith("mw_")) key = "missilewars_" + key.substring(3);
+        return switch (key) {
+            case "coins" -> new Board(key, "<yellow>ᴄᴏɪɴꜱ", "select name, coins as v from ls_players order by coins desc limit ?", null, "number");
+            case "playtime" -> new Board(key, "<aqua>ꜱᴘɪᴇʟᴢᴇɪᴛ", "select name, playtime as v from ls_players order by playtime desc limit ?", null, "time");
+            case "streak" -> new Board(key, "<gold>ʟᴏɢɪɴ-ꜱᴛʀᴇᴀᴋ", "select name, streak as v from ls_players order by streak desc limit ?", null, "days");
+            case "level" -> new Board(key, "<gold>ʟᴏʙʙʏ-ʟᴇᴠᴇʟ", "select name, xp as v from ls_players order by xp desc limit ?", null, "level");
+            case "cookies" -> new Board(key, "<#c79081>ᴄᴏᴏᴋɪᴇ ᴄʟɪᴄᴋᴇʀ", "select name, cookies as v from ls_players order by cookies desc limit ?", null, "cookies");
+            case "friends" -> new Board(key, "<dark_aqua>ꜰʀᴇᴜɴᴅᴇ", "select p.name, count(*) as v from ls_friends f join ls_players p on p.uuid = f.uuid "
+                    + "group by p.uuid, p.name order by v desc limit ?", null, "number");
+            default -> {
+                java.util.regex.Matcher m = GAME_KEY.matcher(key);
+                if (!m.matches()) yield null;
+                String game = m.group(1), stat = m.group(2);
+                String gameName = plugin.configs().cfg().integrations.games.getOrDefault(game, "<aqua>" + game);
+                String statName = switch (stat) {
+                    case "wins" -> "ꜱɪᴇɢᴇ";
+                    case "kills" -> "ᴋɪʟʟꜱ";
+                    case "deaths" -> "ᴛᴏᴅᴇ";
+                    case "games" -> "ʀᴜɴᴅᴇɴ";
+                    default -> "ʟᴇᴠᴇʟ";
+                };
+                yield new Board(key, gameName + " <dark_gray>·</dark_gray> <gray>" + statName,
+                        "select name, " + stat + " as v from ls_game_stats where game = ? order by " + stat + " desc limit ?", game,
+                        stat.equals("level") ? "plainlevel" : "number");
             }
-        }
+        };
     }
 
     private final LobbySystem plugin;
     private final NamespacedKey key;
-    private final Map<Type, TextDisplay> displays = new HashMap<>();
-    private final Map<Type, String> texts = new HashMap<>();
+    private final Map<String, TextDisplay> displays = new HashMap<>();
+    private final Map<String, String> texts = new HashMap<>();
 
     public LeaderboardManager(LobbySystem plugin) {
         this.plugin = plugin;
@@ -73,27 +89,29 @@ public final class LeaderboardManager implements Listener {
         return plugin.configs();
     }
 
-    public void set(Type type, Location loc) {
-        if (loc == null) c().locations().leaderboards.remove(type.name().toLowerCase());
-        else c().locations().leaderboards.put(type.name().toLowerCase(), SLoc.of(loc));
+    public void set(Board board, Location loc) {
+        if (loc == null) c().locations().leaderboards.remove(board.key());
+        else c().locations().leaderboards.put(board.key(), SLoc.of(loc));
         c().saveLocations();
-        despawn(type);
+        despawn(board.key());
         refresh();
     }
 
     /** Daten neu laden (async) und Hologramme aktualisieren. */
     public void refresh() {
         PluginConfig.Leaderboards cfg = c().cfg().leaderboards;
-        for (String k : c().locations().leaderboards.keySet()) {
-            Type type = Type.parse(k);
+        for (String k : new ArrayList<>(c().locations().leaderboards.keySet())) {
+            Board type = board(k);
             if (type == null) continue;
             plugin.database().submit(con -> {
                 List<String[]> rows = new ArrayList<>();
-                try (PreparedStatement ps = con.prepareStatement(type.sql)) {
-                    ps.setInt(1, Math.max(1, Math.min(30, cfg.size)));
+                try (PreparedStatement ps = con.prepareStatement(type.sql())) {
+                    int i = 1;
+                    if (type.gameParam() != null) ps.setString(i++, type.gameParam());
+                    ps.setInt(i, Math.max(1, Math.min(30, cfg.size)));
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
-                            long v = rs.getLong(2);
+                            long v = (long) rs.getDouble(2);
                             if (v <= 0) continue;
                             rows.add(new String[]{rs.getString(1), format(type, v)});
                         }
@@ -104,19 +122,21 @@ public final class LeaderboardManager implements Listener {
         }
     }
 
-    private static String format(Type type, long v) {
-        return switch (type) {
-            case PLAYTIME -> Text.formatDuration(v);
-            case STREAK -> v + (v == 1 ? " Tag" : " Tage");
-            case MW_LEVEL -> "Level " + v;
+    private String format(Board type, long v) {
+        return switch (type.unit()) {
+            case "time" -> Text.formatDuration(v);
+            case "days" -> v + (v == 1 ? " Tag" : " Tage");
+            case "level" -> "Level " + plugin.levels().level(v);
+            case "plainlevel" -> "Level " + v;
+            case "cookies" -> de.crafterteam.lobbysystem.progression.CookieManager.format(v) + " Kekse";
             default -> Text.formatNumber(v);
         };
     }
 
-    private void render(Type type, List<String[]> rows) {
+    private void render(Board type, List<String[]> rows) {
         PluginConfig.Leaderboards cfg = c().cfg().leaderboards;
         StringBuilder sb = new StringBuilder(Text.apply(cfg.header, ConfigManager.map(
-                "size", Integer.toString(cfg.size), "title", type.title)));
+                "size", Integer.toString(cfg.size), "title", type.title())));
         sb.append("\n");
         if (rows.isEmpty()) sb.append("\n").append(cfg.empty);
         for (int i = 0; i < rows.size(); i++) {
@@ -124,24 +144,22 @@ public final class LeaderboardManager implements Listener {
             sb.append("\n").append(color).append(Text.apply(cfg.line, ConfigManager.map(
                     "place", Integer.toString(i + 1), "name", rows.get(i)[0], "value", rows.get(i)[1])));
         }
-        texts.put(type, sb.toString());
-        TextDisplay d = displays.get(type);
+        texts.put(type.key(), sb.toString());
+        TextDisplay d = displays.get(type.key());
         if (d != null && d.isValid()) d.text(Text.parse(sb.toString()));
-        else spawn(type);
+        else spawn(type.key());
     }
 
     /** Alle 5 Sekunden: fehlende Hologramme (Chunk-Unload) neu spawnen. */
     public void tick() {
-        for (String k : c().locations().leaderboards.keySet()) {
-            Type type = Type.parse(k);
-            if (type == null) continue;
-            TextDisplay d = displays.get(type);
-            if (d == null || !d.isValid()) spawn(type);
+        for (String k : new ArrayList<>(c().locations().leaderboards.keySet())) {
+            TextDisplay d = displays.get(k);
+            if (d == null || !d.isValid()) spawn(k);
         }
     }
 
-    private void spawn(Type type) {
-        SLoc s = c().locations().leaderboards.get(type.name().toLowerCase());
+    private void spawn(String type) {
+        SLoc s = c().locations().leaderboards.get(type);
         Location loc = s == null ? null : s.toLocation();
         if (loc == null) return;
         World w = loc.getWorld();
@@ -156,18 +174,18 @@ public final class LeaderboardManager implements Listener {
             t.setLineWidth(250);
             t.setPersistent(false);
             t.setViewRange(0.6f);
-            t.getPersistentDataContainer().set(key, PersistentDataType.STRING, type.name());
+            t.getPersistentDataContainer().set(key, PersistentDataType.STRING, type);
         });
         displays.put(type, d);
     }
 
-    public void despawn(Type type) {
+    public void despawn(String type) {
         TextDisplay d = displays.remove(type);
         if (d != null) d.remove();
     }
 
     public void despawnAll() {
-        for (Type t : Type.values()) despawn(t);
+        for (String t : new ArrayList<>(displays.keySet())) despawn(t);
     }
 
     @EventHandler
