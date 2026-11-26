@@ -13,6 +13,9 @@ public class PluginConfig {
 
     public String license = "HIER-DEINE-LIZENZ-EINTRAGEN";
 
+    /** Intern: bereits durchgeführte Config-Updates (nicht ändern) */
+    public List<String> migrations = new ArrayList<>();
+
     public MySql mysql = new MySql();
 
     public String prefix = "<gradient:#00d2ff:#3a7bd5><b>ʟᴏʙʙʏ</b></gradient> <dark_gray>»</dark_gray> <gray>";

@@ -47,10 +47,51 @@ public final class ConfigManager {
             plugin.getLogger().log(Level.SEVERE, "Konnte Plugin-Ordner nicht erstellen", e);
         }
         config = loadMerged("config.json", new PluginConfig(), PluginConfig.class);
+        migrate();
         ranks = loadList("ranks.json", Rank.defaults(), new TypeToken<List<Rank>>() {}.getType());
         ranks.sort((a, b) -> Integer.compare(a.priority, b.priority));
         locations = loadMerged("locations.json", new Locations(), Locations.class);
         warps = loadList("warps.json", new LinkedHashMap<String, SLoc>(), new TypeToken<LinkedHashMap<String, SLoc>>() {}.getType());
+    }
+
+    /** Einmalige Updates für bestehende Configs (Listen werden beim Mergen nicht ergänzt). */
+    private void migrate() {
+        boolean changed = false;
+        if (config.migrations == null) config.migrations = new ArrayList<>();
+        if (!config.migrations.contains("navigator_missilewars")) {
+            boolean has = config.navigatorItems.stream().anyMatch(l -> l.toLowerCase().contains("missilewars"));
+            if (!has) {
+                int slot = freeNavigatorSlot();
+                if (slot >= 0) {
+                    config.navigatorItems.add(slot + ";TNT;connect-best:MissileWars;<dark_gray>»</dark_gray> <red>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ;"
+                            + "<dark_gray>»</dark_gray> <gray>Spieler: <white>{players:MissileWars*}\n<dark_gray>»</dark_gray> {state:MissileWars*}"
+                            + "\n\n<dark_gray>»</dark_gray> <yellow>Klicke zum Spielen");
+                    plugin.getLogger().info("Navigator: MissileWars-Eintrag in Slot " + slot + " ergänzt.");
+                }
+            }
+            config.migrations.add("navigator_missilewars");
+            changed = true;
+        }
+        if (changed) write("config.json", GSON.toJson(config));
+    }
+
+    /** Slot 29 bevorzugt, sonst erster freier Innen-Slot im Navigator. */
+    private int freeNavigatorSlot() {
+        int size = Math.max(1, Math.min(6, config.navigatorRows)) * 9;
+        java.util.Set<Integer> used = new java.util.HashSet<>();
+        for (String l : config.navigatorItems) {
+            try {
+                used.add(Integer.parseInt(l.split(";", 2)[0].trim()));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        if (29 < size && !used.contains(29)) return 29;
+        for (int i = 0; i < size; i++) {
+            int row = i / 9, col = i % 9;
+            boolean border = size >= 27 && (row == 0 || row == size / 9 - 1 || col == 0 || col == 8);
+            if (!border && !used.contains(i)) return i;
+        }
+        return -1;
     }
 
     /** Lädt eine JSON-Datei, ergänzt fehlende Schlüssel aus den Defaults und schreibt sie zurück. */
