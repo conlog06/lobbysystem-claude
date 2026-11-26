@@ -48,6 +48,7 @@ Mit dem [BungeeSystem](https://github.com/conlog06/bungeesystem-crafterteam) auf
 - **Netzwerk-Onlinezeit** im Scoreboard: `{onlinetime}` · PlaceholderAPI `%lobbysystem_onlinetime%`
   (ohne BungeeSystem = Lobby-Spielzeit)
 - **Report, Ban, Mute** kommen komplett vom Proxy; GUIs zeigt das BungeeSystem-Addon
+- `/coins`, `/advert`, Bug-Belohnungen vom Proxy buchen über den Coin-Cache der Lobby; `/hub` bzw. `/l` in der Lobby = Spawn
 
 ## Neu in 2.4 – MissileWars-Integration
 

@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>Chat-Filter & Anti-Spam übernimmt der Proxy, Party-Nachziehen und Online-Meldungen ebenso</li>
  *   <li>Clan-Gründung bucht die Coins über diesen Server ab (Cache bleibt korrekt)</li>
  *   <li>Netzwerkweite Onlinezeit für das Scoreboard: {onlinetime}</li>
+ *   <li>/coins, /advert & Bug-Belohnungen vom Proxy laufen über den Coin-Cache dieses Servers; /hub in der Lobby = Spawn</li>
  * </ul>
  */
 public final class ProxyBridge implements PluginMessageListener {
@@ -141,6 +142,33 @@ public final class ProxyBridge implements PluginMessageListener {
                             out.writeBoolean(Boolean.TRUE.equals(ok));
                         });
                     });
+                }
+                case "COINS_ADD" -> {
+                    int id = in.readInt();
+                    UUID uuid = UUID.fromString(in.readUTF());
+                    long amount = in.readLong();
+                    plugin.coins().addCoins(uuid, amount, "bungeesystem").thenAccept(ok -> {
+                        Player via = Bukkit.getPlayer(uuid);
+                        send(via != null ? via : carrier, "COINS_RESULT", out -> {
+                            out.writeInt(id);
+                            out.writeBoolean(Boolean.TRUE.equals(ok));
+                        });
+                    });
+                }
+                case "COINS_GET" -> {
+                    int id = in.readInt();
+                    UUID uuid = UUID.fromString(in.readUTF());
+                    plugin.coins().getCoins(uuid).thenAccept(c -> {
+                        Player via = Bukkit.getPlayer(uuid);
+                        send(via != null ? via : carrier, "COINS_VALUE", out -> {
+                            out.writeInt(id);
+                            out.writeLong(c == null ? -1 : c);
+                        });
+                    });
+                }
+                case "SPAWN" -> {
+                    Player p = Bukkit.getPlayer(UUID.fromString(in.readUTF()));
+                    if (p != null) Bukkit.getScheduler().runTask(plugin, () -> plugin.lobby().teleportSpawn(p, true));
                 }
                 default -> {
                 }
