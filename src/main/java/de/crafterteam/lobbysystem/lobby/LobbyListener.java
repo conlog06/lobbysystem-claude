@@ -137,7 +137,7 @@ public final class LobbyListener implements Listener {
         }
         // Kein Treten auf Farmland, kein Öffnen von Kisten/Türen etc.
         if (a == Action.PHYSICAL || (a == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null
-                && event.getClickedBlock().getType().isInteractable())) {
+                && isProtectedBlock(event.getClickedBlock()))) {
             event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
         }
         // Rechtsklick auf Treppe/Stufe = Hinsetzen (SitListener) statt Hotbar-Menü
@@ -188,6 +188,15 @@ public final class LobbyListener implements Listener {
         player.playSound(player.getLocation(), Sound.ENTITY_WIND_CHARGE_WIND_BURST, 0.9f, 1.2f);
         player.getWorld().spawnParticle(Particle.GUST_EMITTER_SMALL, plate.getLocation().add(0.5, 0.2, 0.5), 1);
         return true;
+    }
+
+    /** Kisten, Öfen, Türen, Falltüren, Zauntore, Hebel, Betten … (Knöpfe & Druckplatten bleiben nutzbar) */
+    private static boolean isProtectedBlock(org.bukkit.block.Block b) {
+        var data = b.getBlockData();
+        if (data instanceof org.bukkit.block.data.Openable || data instanceof org.bukkit.block.data.type.Bed
+                || data instanceof org.bukkit.block.data.type.Switch || data instanceof org.bukkit.block.data.type.Repeater
+                || data instanceof org.bukkit.block.data.type.Comparator || data instanceof org.bukkit.block.data.type.NoteBlock) return true;
+        return b.getState(false) instanceof org.bukkit.inventory.InventoryHolder;
     }
 
     private void toggleSilent(Player player) {

@@ -35,6 +35,18 @@ Lotterie, Scoreboard, Tablist, Bossbar, Actionbar und Lizenzsystem.
 > ihren Namen aus der BungeeCord/Velocity-Config eintragen (z. B. `Lobby-1`). Nachrichten an Spieler auf anderen
 > Servern gehen über den Proxy (BungeeCord-Channel, funktioniert auch mit Velocity).
 
+## Neu in 2.2
+
+- **Performance:** Scoreboard/Tab senden nur noch Änderungen, Platzhalter 1×/Sekunde pro Spieler (statt 3×),
+  gebündelte Team-Updates, Text-Parse-Cache, Bewegungs-Events nur bei Blockwechsel, Partikel-Zuschauer gecacht
+- **Bestenlisten-Hologramme:** `/setleaderboard <coins|playtime|streak|friends>` – Top 10, aktualisiert alle 60 s
+- **/pay <Spieler> <Coins>** – Coins überweisen (auch offline / anderer Server)
+- **Hinsetzen** auf Treppen & Stufen per Rechtsklick
+- **Chat:** Anti-Spam (Cooldown, Wiederholung), Wortfilter, **@Erwähnungen** mit Ping-Sound
+- **Fliegen** als Einstellung für Spieler mit `lobbysystem.fly`
+- **Erstjoin-Bonus** (500 Coins) + Willkommensnachricht mit Spielernummer
+- **Animierter Scoreboard-Titel** (`scoreboard.titleFrames`), neuer Platzhalter `{ping}`
+
 ## Commands
 
 | Befehl | Beschreibung |
@@ -51,6 +63,8 @@ Lotterie, Scoreboard, Tablist, Bossbar, Actionbar und Lizenzsystem.
 | `/party invite\|accept\|deny\|leave\|kick\|promote\|disband\|list\|warp\|chat` | Party-System |
 | `/clan create <Name> <Tag>\|invite\|accept\|deny\|leave\|kick\|promote\|demote\|disband\|info\|chat` | Clan-System |
 | `/lobbyswitcher` | Lobby wechseln |
+| `/pay <Spieler> <Coins>` | Coins überweisen |
+| `/setleaderboard [remove] <coins\|playtime\|streak\|friends>` | Bestenliste setzen/entfernen |
 | `/lobbysystem reload\|info` | Konfiguration neu laden / Infos |
 | `/license create\|list\|verify` | **Nur SujucDerBreite** – Lizenzen verwalten |
 
