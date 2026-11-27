@@ -117,6 +117,16 @@ public final class Database {
                 st.executeUpdate("create table if not exists ls_game_joins (uuid varchar(36) not null primary key, server varchar(64) not null, "
                         + "game varchar(32) not null, lobby_id int not null, created bigint not null)");
             }
+            addColumn(con, "ls_game_stats", "elo", "int not null default 0");
+            try (Statement st = con.createStatement()) {
+                // Parkour-Bestzeiten & Wochen-Challenges
+                st.executeUpdate("create table if not exists ls_parkour_times (uuid varchar(36) not null, course varchar(32) not null, "
+                        + "name varchar(16) not null, best_ms bigint not null, runs int not null default 0, updated bigint not null default 0, "
+                        + "primary key (uuid, course))");
+                st.executeUpdate("create table if not exists ls_weekly (uuid varchar(36) not null, week varchar(10) not null, "
+                        + "challenge varchar(32) not null, baseline bigint not null default 0, claimed int not null default 0, "
+                        + "primary key (uuid, week, challenge))");
+            }
             return null;
         }).get(15, TimeUnit.SECONDS);
     }

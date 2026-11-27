@@ -289,6 +289,13 @@ public final class LobbyListener implements Listener {
     public void onToggleFlight(PlayerToggleFlightEvent event) {
         Player player = event.getPlayer();
         if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
+        if (plugin.parkour() != null && plugin.parkour().running(player)) {
+            // im Parkour weder Doppelsprung noch Fliegen
+            event.setCancelled(true);
+            player.setFlying(false);
+            player.setAllowFlight(false);
+            return;
+        }
         PlayerData data = plugin.data().get(player);
         if (plugin.lobby().canFly(player, data)) return; // normales Fliegen
         event.setCancelled(true);
@@ -316,10 +323,12 @@ public final class LobbyListener implements Listener {
         // Performance: nur reagieren, wenn sich die Block-Position geändert hat (Kopfdrehen ignorieren)
         if (from.getBlockX() == to.getBlockX() && from.getBlockY() == to.getBlockY() && from.getBlockZ() == to.getBlockZ()) return;
         Player player = event.getPlayer();
-        if (to.getY() < prot().voidY) {
+        boolean parkour = plugin.parkour() != null && plugin.parkour().running(player);
+        if (to.getY() < prot().voidY && !parkour) {
             plugin.lobby().teleportSpawn(player, false);
             return;
         }
+        if (parkour) return;
         // Doppelsprung wieder freischalten, sobald der Spieler den Boden berührt
         if (!player.getAllowFlight()
                 && player.getGameMode() != GameMode.CREATIVE && player.getGameMode() != GameMode.SPECTATOR

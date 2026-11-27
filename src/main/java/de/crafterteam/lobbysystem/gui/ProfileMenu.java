@@ -18,7 +18,7 @@ import java.util.Locale;
 public final class ProfileMenu extends Menu {
 
     /** Stats eines Spielmodus */
-    public record GameStats(String game, int wins, int kills, int deaths, int games, int level) {
+    public record GameStats(String game, int wins, int kills, int deaths, int games, int level, int elo) {
     }
 
     private final List<GameStats> games;
@@ -34,10 +34,10 @@ public final class ProfileMenu extends Menu {
         plugin.database().submit(con -> {
             List<GameStats> out = new ArrayList<>();
             try (PreparedStatement ps = con.prepareStatement(
-                    "select game, wins, kills, deaths, games, level from ls_game_stats where uuid = ? order by game")) {
+                    "select game, wins, kills, deaths, games, level, elo from ls_game_stats where uuid = ? order by game")) {
                 ps.setString(1, id);
                 try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) out.add(new GameStats(rs.getString(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5), rs.getInt(6)));
+                    while (rs.next()) out.add(new GameStats(rs.getString(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5), rs.getInt(6), rs.getInt(7)));
                 }
             }
             return out;
@@ -116,13 +116,39 @@ public final class ProfileMenu extends Menu {
             GameStats g = games.get(i);
             double kd = g.deaths() == 0 ? g.kills() : (double) g.kills() / g.deaths();
             double wr = g.games() == 0 ? 0 : 100.0 * g.wins() / g.games();
+            List<String> lore = new ArrayList<>();
+            lore.add("<dark_gray>↪</dark_gray> <gray>Level: <gold>" + g.level());
+            if (g.elo() > 0) lore.add("<dark_gray>↪</dark_gray> <gray>Elo: <white>" + g.elo() + " <dark_gray>·</dark_gray> " + EloTopMenu.tier(g.elo()));
             set(slots[i], new ItemBuilder(icon(g.game())).icon(player, "mode_" + g.game()).name("<dark_gray>»</dark_gray> " + title(g.game()))
-                    .lore("<dark_gray>↪</dark_gray> <gray>Level: <gold>" + g.level(),
+                    .lore(lore).lore(
                             "<dark_gray>↪</dark_gray> <gray>Siege: <green>" + g.wins() + " <dark_gray>(" + String.format(Locale.GERMANY, "%.0f", wr) + " %)",
                             "<dark_gray>↪</dark_gray> <gray>Runden: <white>" + g.games(),
                             "<dark_gray>↪</dark_gray> <gray>Kills: <white>" + g.kills() + " <dark_gray>|</dark_gray> <gray>Tode: <white>" + g.deaths(),
                             "<dark_gray>↪</dark_gray> <gray>K/D: <aqua>" + String.format(Locale.GERMANY, "%.2f", kd)).build());
         }
+        // ---- Wochen-Challenges, Parkour, Elo-Bestenliste
+        if (plugin.configs().cfg().weekly.enabled) {
+            set(28, new ItemBuilder(Material.WRITABLE_BOOK).name("<dark_gray>»</dark_gray> <gradient:#f7971e:#ffd200>Wochen-Challenges</gradient>")
+                    .lore("<dark_gray>↪</dark_gray> <gray>Jede Woche neue Ziele & Coins", "",
+                            "<dark_gray>»</dark_gray> <yellow>Klicke zum Öffnen").build(), e -> {
+                click();
+                WeeklyMenu.open(plugin, player);
+            });
+        }
+        if (plugin.parkour() != null && !plugin.parkour().courses().isEmpty()) {
+            set(30, new ItemBuilder(Material.LIGHT_WEIGHTED_PRESSURE_PLATE).name("<dark_gray>»</dark_gray> <aqua>Parkour")
+                    .lore("<dark_gray>↪</dark_gray> <gray>Bestzeiten & Bestenliste", "",
+                            "<dark_gray>»</dark_gray> <yellow>Klicke zum Öffnen").build(), e -> {
+                click();
+                ParkourMenu.open(plugin, player);
+            });
+        }
+        set(32, new ItemBuilder(Material.NETHER_STAR).name("<dark_gray>»</dark_gray> <gradient:#c471ed:#f64f59>Elo-Bestenliste</gradient>")
+                .lore("<dark_gray>↪</dark_gray> <gray>Die besten MissileWars-Spieler", "",
+                        "<dark_gray>»</dark_gray> <yellow>Klicke zum Öffnen").build(), e -> {
+            click();
+            EloTopMenu.open(plugin, player, "missilewars");
+        });
         fill(Material.GRAY_STAINED_GLASS_PANE);
     }
 

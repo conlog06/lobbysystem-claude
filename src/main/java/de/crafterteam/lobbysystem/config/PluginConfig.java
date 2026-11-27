@@ -72,6 +72,8 @@ public class PluginConfig {
     public Integrations integrations = new Integrations();
     /** Ränge für Coins kaufen */
     public RankShop rankShop = new RankShop();
+    public Parkour parkour = new Parkour();
+    public Weekly weekly = new Weekly();
     /** Anbindung an das BungeeSystem (Proxy-Plugin) */
     public BungeeSystem bungeeSystem = new BungeeSystem();
 
@@ -239,6 +241,46 @@ public class PluginConfig {
             this.days = days;
             this.material = material;
             this.features = new ArrayList<>(List.of(features));
+        }
+    }
+
+    public static class Parkour {
+        public boolean enabled = true;
+        /** Hologramme über Start, Checkpoints & Ziel */
+        public boolean holograms = true;
+        /** so viele Blöcke unter dem tiefsten Punkt des Kurses = zurück zum Checkpoint */
+        public double fallDistance = 4;
+        public int maxMinutes = 30;
+    }
+
+    /** Wöchentliche Challenges (Reset Montag 00:00). game = Spiel-ID aus ls_game_stats, "any" = alle Spiele, "lobby" = Lobby-Werte */
+    public static class Weekly {
+        public boolean enabled = true;
+        public List<Challenge> challenges = new ArrayList<>(List.of(
+                new Challenge("mw_wins", "<red>MissileWars: 5 Siege", "TNT", "missilewars", "wins", 5, 750),
+                new Challenge("mw_kills", "<red>MissileWars: 25 Kills", "IRON_SWORD", "missilewars", "kills", 25, 500),
+                new Challenge("any_games", "<aqua>15 Runden in beliebigen Modi", "COMPASS", "any", "games", 15, 600),
+                new Challenge("playtime", "<green>3 Stunden online", "CLOCK", "lobby", "playtime", 180, 400),
+                new Challenge("parkour", "<yellow>3 Parkour-Läufe", "LIGHT_WEIGHTED_PRESSURE_PLATE", "lobby", "parkour", 3, 250)
+        ));
+    }
+
+    public static class Challenge {
+        public String id, name, icon, game, stat;
+        /** stat: wins | kills | deaths | games (Spiele) · playtime (Minuten) | parkour (Läufe) (lobby) */
+        public long goal, reward;
+
+        public Challenge() {
+        }
+
+        public Challenge(String id, String name, String icon, String game, String stat, long goal, long reward) {
+            this.id = id;
+            this.name = name;
+            this.icon = icon;
+            this.game = game;
+            this.stat = stat;
+            this.goal = goal;
+            this.reward = reward;
         }
     }
 
@@ -508,6 +550,24 @@ public class PluginConfig {
                 "cherry;CHERRY_LEAVES;<light_purple>Kirschblüten-Ballon;1200;CHERRY_LEAVES",
                 "slime;SLIME_BLOCK;<green>Schleim-Ballon;1500;SLIME_BLOCK"
         ));
+        /** id;MATERIAL;Name;Preis;ENTITY_TYPE[:baby] – Haustiere folgen dem Spieler */
+        public List<String> pets = new ArrayList<>(List.of(
+                "wolf;BONE;<white>Wolfswelpe;1500;WOLF:baby",
+                "cat;COD;<gold>Kätzchen;1500;CAT:baby",
+                "fox;SWEET_BERRIES;<gold>Fuchs;2000;FOX:baby",
+                "pig;CARROT_ON_A_STICK;<light_purple>Ferkel;800;PIG:baby",
+                "chicken;EGG;<yellow>Küken;600;CHICKEN:baby",
+                "rabbit;RABBIT_FOOT;<white>Häschen;1000;RABBIT:baby",
+                "axolotl;AXOLOTL_BUCKET;<light_purple>Axolotl;2500;AXOLOTL",
+                "frog;SLIME_BALL;<green>Frosch;2000;FROG",
+                "bee;HONEYCOMB;<yellow>Biene;3000;BEE:baby",
+                "allay;AMETHYST_SHARD;<aqua>Allay;5000;ALLAY",
+                "panda;BAMBOO;<white>Pandababy;4000;PANDA:baby",
+                "sniffer;TORCHFLOWER_SEEDS;<dark_green>Sniffer-Baby;7500;SNIFFER:baby"
+        ));
+        /** Name über dem Haustier ({name} = Besitzer, {pet} = Cosmetic-Name) */
+        public String petName = "<gray>{name}s</gray> {pet}";
+        public boolean petNameVisible = true;
         /** id;MATERIAL;Name;Preis;PARTIKEL (DUST:#rrggbb für farbigen Staub) */
         public List<String> particles = new ArrayList<>(List.of(
                 "snow;SNOWBALL;<white>Schneeflocken;400;SNOWFLAKE",
@@ -561,6 +621,7 @@ public class PluginConfig {
         m.put("suffix_chat_bypass", "chat.bypass");
         m.put("suffix_sit", "");
         m.put("suffix_cookie", "");
+        m.put("suffix_parkour_admin", "parkour.admin");
         return m;
     }
 
@@ -658,6 +719,28 @@ public class PluginConfig {
         m.put("cosmetic_no_coins", "<red>Dir fehlen <yellow>{missing} Coins</yellow> <red>für dieses Cosmetic.");
         m.put("cosmetic_selected", "<gray>Du hast <white>{cosmetic}</white> <gray>ausgewählt.");
         m.put("cosmetic_removed", "<gray>Deine Cosmetics wurden entfernt.");
+        m.put("parkour_start", "<gray>Parkour {course} <gray>gestartet – <yellow>los!");
+        m.put("parkour_restart", "<gray>Parkour {course} <gray>neu gestartet.");
+        m.put("parkour_checkpoint", "<yellow>Checkpoint {number}/{total} <dark_gray>·</dark_gray> <white>{time}");
+        m.put("parkour_skipped", "<red>Du hast Checkpoint <white>#{number}</white> <red>ausgelassen!");
+        m.put("parkour_finish", "<green><b>Geschafft!</b> <gray>{course} <gray>in <aqua>{time}</aqua> <dark_gray>(Platz #{rank})");
+        m.put("parkour_first", "<gray>Erster Abschluss: <yellow>+{coins} Coins");
+        m.put("parkour_best", "<gold>Neue Bestzeit! <gray>(vorher {old}) <yellow>+{coins} Coins");
+        m.put("parkour_no_best", "<gray>Deine Bestzeit bleibt <aqua>{best}</aqua><gray>.");
+        m.put("parkour_record", "<gold>🏆 <white>{name}</white> <gray>hat den Rekord im Parkour {course} <gray>geknackt: <aqua>{time}");
+        m.put("parkour_left", "<gray>Parkour verlassen.");
+        m.put("parkour_timeout", "<red>Zeit abgelaufen – Parkour beendet.");
+        m.put("parkour_no_fly", "<red>Im Fliegen kannst du keinen Parkour starten.");
+        m.put("parkour_none", "<gray>Es gibt noch keinen Parkour.");
+        m.put("parkour_list", "<gray>Parkours: {courses}");
+        m.put("parkour_unknown", "<red>Parkour <white>{course}</white> <red>gibt es nicht.");
+        m.put("parkour_exists", "<red>Parkour <white>{course}</white> <red>existiert bereits.");
+        m.put("parkour_saved", "<green>Parkour <white>{course}</white> <green>gespeichert ({action}) <dark_gray>· <gray>Checkpoints: {checkpoints}");
+        m.put("parkour_top_header", "<gray>Bestenliste {course}<gray>:");
+        m.put("parkour_top_empty", "<gray>Noch keine Zeiten.");
+        m.put("parkour_help", "<gray>/parkour list <dark_gray>|</dark_gray> top [Kurs] <dark_gray>|</dark_gray> leave");
+        m.put("parkour_admin_help", "<gray>/parkour create <id> [Name] · setstart|addcp|removecp|setfinish|delete <id> · setreward <id> <Coins> [Bestzeit-Coins] · setname <id> <Name> <dark_gray>(Block unter deinen Füßen, am besten Druckplatten)");
+        m.put("weekly_claimed", "<green>Challenge geschafft: {challenge} <yellow>+{coins} Coins");
         m.put("gadget_cooldown", "<red>Bitte warte noch <white>{seconds}s</white><red>.");
         m.put("visibility_changed", "<gray>Spielersichtbarkeit: {state}");
         m.put("silent_on", "<gray>Du bist nun in der <red>Silent Lobby</red><gray>. Niemand sieht oder hört dich.");

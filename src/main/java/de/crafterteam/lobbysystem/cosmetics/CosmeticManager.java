@@ -51,9 +51,28 @@ public final class CosmeticManager implements Listener {
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private long ticks;
 
+    private final PetManager pets;
+
     public CosmeticManager(LobbySystem plugin) {
         this.plugin = plugin;
+        this.pets = new PetManager(plugin);
         reload();
+    }
+
+    public PetManager pets() {
+        return pets;
+    }
+
+    /** Haustier aus-/einblenden (z. B. im Parkour). */
+    public void hidePet(Player player, boolean hide) {
+        Cosmetic c = selected(player, Cosmetic.Category.PET);
+        pets.hide(player, hide, c != null && owns(player, c) ? c : null);
+    }
+
+    private void spawnPet(Player player) {
+        Cosmetic c = selected(player, Cosmetic.Category.PET);
+        if (c == null || !owns(player, c)) pets.remove(player);
+        else pets.spawn(player, c);
     }
 
     public void reload() {
@@ -64,6 +83,7 @@ public final class CosmeticManager implements Listener {
         load(Cosmetic.Category.GADGET, c.gadgets);
         load(Cosmetic.Category.BALLOON, c.balloons);
         load(Cosmetic.Category.PARTICLE, c.particles);
+        load(Cosmetic.Category.PET, c.pets);
     }
 
     private void load(Cosmetic.Category cat, List<String> lines) {
@@ -120,6 +140,7 @@ public final class CosmeticManager implements Listener {
                 spawnBalloon(player);
             }
             case GADGET -> plugin.lobby().giveHotbar(player);
+            case PET -> spawnPet(player);
             default -> {
             }
         }
@@ -130,21 +151,25 @@ public final class CosmeticManager implements Listener {
         applyHead(player);
         removeBalloon(player);
         spawnBalloon(player);
+        spawnPet(player);
     }
 
     public void clear(Player player) {
         removeBalloon(player);
+        pets.remove(player);
         ItemStack helmet = player.getInventory().getHelmet();
         if ("cosmetic_head".equals(Keys.itemTag(helmet))) player.getInventory().setHelmet(null);
     }
 
     public void quit(Player player) {
         cooldowns.remove(player.getUniqueId());
+        pets.quit(player);
     }
 
     public void shutdown() {
         balloons.values().forEach(Entity::remove);
         balloons.clear();
+        pets.shutdown();
     }
 
     // ---------------------------------------------------------------- Heads
@@ -209,6 +234,7 @@ public final class CosmeticManager implements Listener {
                 else viewer.hideEntity(plugin, e.getValue());
             }
         }
+        pets.updateAllVisibility();
     }
 
     // ---------------------------------------------------------------- Tick (jeden Tick)
@@ -236,6 +262,8 @@ public final class CosmeticManager implements Listener {
         if (ticks % 3 == 0) {
             for (Player p : Bukkit.getOnlinePlayers()) particle(p);
         }
+        if (ticks % 10 == 0) pets.tick();
+        if (ticks % 2 == 0 && plugin.parkour() != null) plugin.parkour().tick();
     }
 
     private static final Particle.DustOptions STRING_DUST = new Particle.DustOptions(Color.fromRGB(235, 235, 235), 0.35f);

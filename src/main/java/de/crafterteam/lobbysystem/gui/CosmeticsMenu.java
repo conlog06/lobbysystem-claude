@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Extras: Heads, Gadgets, Ballone, Partikel – mit Tabs, Seiten & Coins-Shop. */
+/** Extras: Heads, Gadgets, Ballone, Partikel, Haustiere – mit Tabs, Seiten & Coins-Shop. */
 public final class CosmeticsMenu extends Menu {
 
     private static final Map<UUID, Cosmetic.Category> LAST = new HashMap<>();
@@ -22,7 +22,7 @@ public final class CosmeticsMenu extends Menu {
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
             28, 29, 30, 31, 32, 33, 34};
-    private static final int[] TAB_SLOTS = {1, 3, 5, 7};
+    private static final int[] TAB_SLOTS = {0, 2, 4, 6, 8};
 
     private final Cosmetic.Category category;
     private int page;

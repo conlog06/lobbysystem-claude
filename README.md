@@ -19,6 +19,14 @@ Lotterie, Scoreboard, Tablist, Bossbar, Actionbar und Lizenzsystem.
 | Doppelsprung | Wolke | Breeze-Sound + Gust-Partikel |
 | Speicher | nur MySQL | MySQL **oder** lokal SQLite; Coins werden als Differenz gespeichert (mehrere Lobbys gleichzeitig sicher) |
 
+## Neu in 2.10 – Parkour, Haustiere, Wochen-Challenges, Elo
+- **Parkour:** beliebig viele Kurse mit Start, Checkpoints & Ziel (am besten Druckplatten), Zeit in der Actionbar, Hotbar mit Checkpoint/Neustart/Verlassen,
+  Bestzeiten & Bestenliste (`/parkour top`), Coins für den ersten Abschluss und neue Bestzeiten, Rekord-Ansage, Hologramme. Einrichten:
+  `/parkour create <id> [Name]` → auf jeder Checkpoint-Platte `/parkour addcp <id>` → am Ziel `/parkour setfinish <id>` (Permission `lobbysystem.parkour.admin`)
+- **Haustiere:** neue Cosmetic-Kategorie (Welpe, Kätzchen, Fuchs, Axolotl, Allay, Sniffer-Baby …) – folgen dem Spieler, unverwundbar, respektieren die Sichtbarkeit; eigene in `cosmetics.pets` (`id;ICON;Name;Preis;ENTITY[:baby]`)
+- **Wochen-Challenges** (Profil → Wochen-Challenges): Ziele aus allen Spielmodi (`ls_game_stats`), Spielzeit & Parkour, Coins-Belohnung, Reset montags. In `weekly.challenges` frei einstellbar
+- **Elo:** MissileWars-Elo im Profil + **Elo-Bestenliste** mit Rängen (Bronze → Champion) und eigenem Platz
+
 ## Neu in 2.1
 
 - **Freunde** (`/friend`, `/f`): Anfragen mit Klick-Buttons, Online-Status über alle Lobbys, Nachspringen, Nachrichten, Join/Quit-Benachrichtigung, Limit (Premium mehr)

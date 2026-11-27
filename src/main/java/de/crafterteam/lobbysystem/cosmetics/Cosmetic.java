@@ -9,7 +9,8 @@ public record Cosmetic(Category category, String id, Material icon, String name,
         HEAD("<gold>ʜᴇᴀᴅꜱ", Material.PLAYER_HEAD),
         GADGET("<aqua>ɢᴀᴅɢᴇᴛꜱ", Material.FISHING_ROD),
         BALLOON("<dark_aqua>ʙᴀʟʟᴏɴᴇ", Material.LEAD),
-        PARTICLE("<blue>ᴘᴀʀᴛɪᴋᴇʟ", Material.BLAZE_POWDER);
+        PARTICLE("<blue>ᴘᴀʀᴛɪᴋᴇʟ", Material.BLAZE_POWDER),
+        PET("<green>ʜᴀᴜꜱᴛɪᴇʀᴇ", Material.BONE);
 
         public final String title;
         public final Material icon;

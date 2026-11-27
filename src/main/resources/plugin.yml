@@ -80,3 +80,7 @@ commands:
     description: Infos & Reload
     usage: /lobbysystem <reload|info>
     aliases: [ls]
+  parkour:
+    description: Lobby-Parkour (Bestzeiten, Bestenliste, Einrichtung)
+    usage: /parkour <list|top|leave|create|setstart|addcp|setfinish|delete>
+    aliases: [pk]

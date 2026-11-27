@@ -62,6 +62,8 @@ public final class LobbySystem extends JavaPlugin {
     private de.crafterteam.lobbysystem.storage.GameStatsService gameStats;
     private de.crafterteam.lobbysystem.progression.LevelManager levels;
     private de.crafterteam.lobbysystem.progression.CookieManager cookies;
+    private de.crafterteam.lobbysystem.lobby.ParkourManager parkour;
+    private de.crafterteam.lobbysystem.progression.WeeklyManager weekly;
     private boolean started;
 
     @Override
@@ -100,6 +102,7 @@ public final class LobbySystem extends JavaPlugin {
         servers = new ServerRegistry(this);
         levels = new de.crafterteam.lobbysystem.progression.LevelManager(this);
         cookies = new de.crafterteam.lobbysystem.progression.CookieManager(this);
+        weekly = new de.crafterteam.lobbysystem.progression.WeeklyManager(this);
         pack = new ResourcePackManager(this);
         lobby = new LobbyManager(this);
         sidebar = new SidebarManager(this);
@@ -126,6 +129,12 @@ public final class LobbySystem extends JavaPlugin {
             pm.registerEvents(pack, this);
             pm.registerEvents(leaderboards, this);
             pm.registerEvents(sit, this);
+            pm.registerEvents(cosmetics.pets(), this);
+            if (configs.cfg().parkour.enabled) {
+                parkour = new de.crafterteam.lobbysystem.lobby.ParkourManager(this);
+                pm.registerEvents(parkour, this);
+                register("parkour", parkour);
+            }
             for (String cmd : new String[]{"build", "lobbycoins", "setreward", "setsettings", "setspawn", "setwarp", "warp", "spawn",
                     "tpcoord", "setleaderboard", "cookie"}) {
                 register(cmd, commands);
@@ -263,6 +272,7 @@ public final class LobbySystem extends JavaPlugin {
     /** Spieler komplett einrichten (Join oder Reload). */
     public void initPlayer(Player p, boolean teleport) {
         lobby.setup(p, teleport);
+        weekly.join(p);
         sidebar.create(p);
         bars.show(p);
         lobby.updateVisibility();
@@ -298,6 +308,7 @@ public final class LobbySystem extends JavaPlugin {
             return;
         }
         Bukkit.getScheduler().cancelTasks(this);
+        if (parkour != null) parkour.shutdown();
         if (cosmetics != null) cosmetics.shutdown();
         if (npcs != null) npcs.despawnAll();
         if (leaderboards != null) leaderboards.despawnAll();
@@ -388,6 +399,14 @@ public final class LobbySystem extends JavaPlugin {
 
     public de.crafterteam.lobbysystem.progression.LevelManager levels() {
         return levels;
+    }
+
+    public de.crafterteam.lobbysystem.lobby.ParkourManager parkour() {
+        return parkour;
+    }
+
+    public de.crafterteam.lobbysystem.progression.WeeklyManager weekly() {
+        return weekly;
     }
 
     public de.crafterteam.lobbysystem.progression.CookieManager cookies() {
