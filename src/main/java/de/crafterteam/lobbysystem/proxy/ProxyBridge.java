@@ -72,6 +72,21 @@ public final class ProxyBridge implements PluginMessageListener {
         return true;
     }
 
+    private final java.util.Set<UUID> packHandled = ConcurrentHashMap.newKeySet();
+
+    /** Hat der Proxy für diesen Spieler schon über das Pack entschieden? */
+    public boolean packHandled(UUID uuid) {
+        return packHandled.contains(uuid);
+    }
+
+    public void packStatus(Player p, boolean ok) {
+        if (!helloReceived) return;
+        send(p, "PACK_STATUS", out -> {
+            out.writeUTF(p.getUniqueId().toString());
+            out.writeBoolean(ok);
+        });
+    }
+
     public long onlineTimeSeconds(UUID uuid) {
         Long ms = onlineTime.get(uuid);
         return ms == null ? -1 : ms / 1000;
@@ -79,6 +94,8 @@ public final class ProxyBridge implements PluginMessageListener {
 
     public void forget(UUID uuid) {
         onlineTime.remove(uuid);
+        packHandled.remove(uuid);
+        plugin.pack().forget(uuid);
     }
 
     @FunctionalInterface
@@ -135,6 +152,9 @@ public final class ProxyBridge implements PluginMessageListener {
                         out.writeUTF(my.enabled ? "mysql" : "sqlite");
                         out.writeUTF(my.enabled ? my.host + ":" + my.port + "/" + my.database : "plugins/LobbySystem/data.db");
                         out.writeUTF(carrier.getUniqueId().toString()); // UUID-Abgleich mit dem Proxy
+                        // Ressourcenpaket der Lobby → der Proxy verteilt es netzwerkweit
+                        out.writeUTF(plugin.pack().url());
+                        out.writeUTF(plugin.pack().sha1());
                     });
                 }
                 case "ONLINETIME" -> onlineTime.put(UUID.fromString(in.readUTF()), in.readLong());
@@ -182,6 +202,20 @@ public final class ProxyBridge implements PluginMessageListener {
                             out.writeLong(c == null ? -1 : c);
                         });
                     });
+                }
+                case "PACK" -> {
+                    // url, sha1, required, prompt, loaded – die Lobby hostet das Pack selbst, wichtig ist nur "loaded"
+                    UUID uuid = UUID.fromString(in.readUTF());
+                    in.readUTF();
+                    in.readUTF();
+                    in.readBoolean();
+                    in.readUTF();
+                    boolean alreadyLoaded = in.readBoolean();
+                    packHandled.add(uuid);
+                    Player p = Bukkit.getPlayer(uuid);
+                    if (p == null) return;
+                    if (alreadyLoaded) plugin.pack().markLoaded(p);
+                    else Bukkit.getScheduler().runTask(plugin, () -> plugin.pack().send(p));
                 }
                 case "SPAWN" -> {
                     Player p = Bukkit.getPlayer(UUID.fromString(in.readUTF()));

@@ -37,7 +37,11 @@ import java.util.logging.Level;
  */
 public final class ResourcePackManager implements Listener {
 
-    private static final UUID PACK_ID = UUID.nameUUIDFromBytes("lobbysystem-pack".getBytes());
+    /** Gleiche ID im ganzen Netzwerk (Addon nutzt sie auch) – der Client lädt das Pack nur einmal. */
+    public static final UUID PACK_ID = UUID.nameUUIDFromBytes("lobbysystem-pack".getBytes());
+    private static volatile ResourcePackManager instance;
+    /** Spieler, bei denen das Pack geladen ist (eigene Item-Icons nur dann). */
+    private final java.util.Set<UUID> loaded = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private final LobbySystem plugin;
     private HttpServer server;
@@ -47,6 +51,50 @@ public final class ResourcePackManager implements Listener {
 
     public ResourcePackManager(LobbySystem plugin) {
         this.plugin = plugin;
+        instance = this;
+    }
+
+    /** Hat der Spieler das Pack geladen? (für ItemBuilder.icon) */
+    public static boolean icons(Player p) {
+        ResourcePackManager m = instance;
+        return m != null && m.cfg().enabled && m.loaded.contains(p.getUniqueId());
+    }
+
+    public String url() {
+        return uri == null ? "" : uri.toString();
+    }
+
+    public String sha1() {
+        return sha1 == null ? "" : sha1;
+    }
+
+    public void forget(UUID uuid) {
+        loaded.remove(uuid);
+    }
+
+    /** Proxy meldet: Pack ist in dieser Sitzung schon geladen → nicht erneut senden, Icons direkt an. */
+    public void markLoaded(Player p) {
+        if (loaded.add(p.getUniqueId())) refreshItems(p);
+    }
+
+    private void refreshItems(Player p) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (p.isOnline()) plugin.lobby().giveHotbar(p);
+        });
+    }
+
+    /**
+     * Beim Join: läuft das BungeeSystem, entscheidet der Proxy (Nachricht PACK), ob gesendet werden muss –
+     * sonst nach 3 s selbst senden.
+     */
+    public void join(Player player) {
+        if (!plugin.proxy().active(null)) {
+            send(player);
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline() && !loaded.contains(player.getUniqueId()) && !plugin.proxy().packHandled(player.getUniqueId())) send(player);
+        }, 60L);
     }
 
     private PluginConfig.ResourcePack cfg() {
@@ -198,6 +246,16 @@ public final class ResourcePackManager implements Listener {
 
     @EventHandler
     public void onStatus(PlayerResourcePackStatusEvent event) {
+        Player player = event.getPlayer();
+        switch (event.getStatus()) {
+            case SUCCESSFULLY_LOADED -> {
+                if (loaded.add(player.getUniqueId())) refreshItems(player);
+                plugin.proxy().packStatus(player, true);
+            }
+            case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> plugin.proxy().packStatus(player, false);
+            default -> {
+            }
+        }
         PluginConfig.ResourcePack rp = cfg();
         if (!rp.enabled || !rp.required) return;
         switch (event.getStatus()) {

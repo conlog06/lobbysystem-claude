@@ -127,7 +127,7 @@ public final class LobbyManager {
                 }
             }
             ItemBuilder b = new ItemBuilder(ItemBuilder.material(h.material, Material.STONE))
-                    .name(h.name, ph).lore(h.lore, ph).tag(id).hideFlags();
+                    .name(h.name, ph).lore(h.lore, ph).tag(id).hideFlags().icon(player, h.icon);
             if (id.equals("profile")) b.skull(player);
             if (id.equals("friends") && !c().cfg().social.friends) continue;
             if (id.equals("silentlobby") && data.silent()) b.glow(true);

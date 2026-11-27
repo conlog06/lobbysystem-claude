@@ -116,6 +116,167 @@ ICONS = [
     ("gem", "", gem()),
 ]
 
+
+# ---------------------------------------------------------------- Item-Icons (item_model, ab 1.21.4)
+# Werden über die Komponente "item_model" = lobbysystem:<name> genutzt – nur bei geladenem Pack.
+
+def outline(im, color=(25, 25, 30, 255)):
+    """Dunkler 1-px-Rand um alle sichtbaren Pixel (Minecraft-Look)."""
+    src = im.copy(); out = im.copy(); w, h = im.size
+    for y in range(h):
+        for x in range(w):
+            if src.getpixel((x, y))[3] != 0:
+                continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < w and 0 <= ny < h and src.getpixel((nx, ny))[3] > 0:
+                    out.putpixel((x, y), color)
+                    break
+    return out
+
+def rocket():
+    im = img(); d = ImageDraw.Draw(im)
+    body = [(4, 11), (11, 4), (12, 3), (13, 3), (13, 4), (12, 5), (5, 12)]
+    for i in range(7):  # diagonaler Körper
+        d.line((3 + i, 10 + 0, 10 + i - 4, 3 + 0), fill=None)
+    d.polygon([(4, 10), (10, 4), (12, 6), (6, 12)], fill=(200, 205, 215, 255))
+    d.polygon([(5, 10), (10, 5), (11, 6), (6, 11)], fill=(235, 238, 245, 255))
+    d.polygon([(10, 4), (13, 2), (12, 6)], fill=(220, 40, 40, 255))           # Spitze
+    d.polygon([(4, 10), (2, 9), (4, 8)], fill=(200, 40, 40, 255))             # Flossen
+    d.polygon([(6, 12), (7, 14), (8, 12)], fill=(200, 40, 40, 255))
+    px(d, [(8, 7), (9, 7), (8, 8)], (70, 160, 230, 255))                       # Fenster
+    d.polygon([(4, 12), (1, 15), (3, 12)], fill=(255, 150, 30, 255))          # Flamme
+    px(d, [(3, 13), (2, 14)], (255, 230, 80, 255))
+    return outline(im)
+
+def magnifier():
+    im = img(); d = ImageDraw.Draw(im)
+    d.ellipse((2, 2, 10, 10), fill=(110, 80, 50, 255))
+    d.ellipse((3, 3, 9, 9), fill=(150, 210, 240, 255))
+    px(d, [(4, 5), (5, 4), (4, 4)], (240, 250, 255, 255))
+    d.line((9, 9, 13, 13), fill=(90, 60, 35, 255), width=2)
+    px(d, [(14, 14)], (90, 60, 35, 255))
+    # Augen im Glas (Verstecken)
+    px(d, [(5, 6), (7, 6)], (30, 30, 40, 255))
+    return outline(im)
+
+def zombie():
+    im = img(); d = ImageDraw.Draw(im)
+    d.rectangle((2, 2, 13, 13), fill=(70, 140, 60, 255))
+    d.rectangle((2, 2, 13, 4), fill=(50, 105, 45, 255))                       # Haare/Schatten
+    d.rectangle((4, 6, 6, 8), fill=(20, 20, 20, 255))
+    d.rectangle((9, 6, 11, 8), fill=(20, 20, 20, 255))
+    px(d, [(5, 7), (10, 7)], (200, 40, 40, 255))                               # rote Pupillen
+    d.rectangle((5, 10, 10, 11), fill=(40, 80, 35, 255))
+    px(d, [(6, 11), (8, 11)], (230, 230, 210, 255))                            # Zähne
+    px(d, [(3, 12), (12, 9), (11, 12)], (95, 165, 80, 255))
+    return outline(im)
+
+def globe():
+    im = img(); d = ImageDraw.Draw(im)
+    d.ellipse((1, 1, 14, 14), fill=(40, 110, 210, 255))
+    d.ellipse((2, 2, 13, 13), fill=(60, 140, 235, 255))
+    d.polygon([(4, 4), (8, 3), (9, 6), (6, 8), (4, 7)], fill=(70, 170, 70, 255))
+    d.polygon([(9, 9), (12, 8), (12, 11), (10, 12)], fill=(70, 170, 70, 255))
+    px(d, [(3, 10), (4, 11)], (70, 170, 70, 255))
+    px(d, [(5, 5), (6, 4)], (120, 210, 110, 255))
+    # kleiner Spross oben (Evolution)
+    px(d, [(8, 0), (8, 1)], (60, 150, 50, 255)); px(d, [(7, 0), (9, 1)], (110, 200, 90, 255))
+    return outline(im)
+
+def house():
+    im = img(); d = ImageDraw.Draw(im)
+    d.polygon([(1, 8), (8, 1), (15, 8)], fill=(190, 50, 50, 255))
+    d.polygon([(3, 8), (8, 3), (13, 8)], fill=(225, 75, 65, 255))
+    d.rectangle((3, 8, 12, 14), fill=(210, 180, 130, 255))
+    d.rectangle((7, 10, 9, 14), fill=(120, 80, 45, 255))
+    d.rectangle((4, 9, 5, 10), fill=(150, 210, 240, 255))
+    d.rectangle((10, 9, 11, 10), fill=(150, 210, 240, 255))
+    return outline(im)
+
+def compass():
+    im = img(); d = ImageDraw.Draw(im)
+    d.ellipse((1, 1, 14, 14), fill=(190, 140, 40, 255))
+    d.ellipse((2, 2, 13, 13), fill=(240, 235, 220, 255))
+    d.polygon([(7, 7), (8, 7), (11, 3)], fill=(220, 40, 40, 255))
+    d.polygon([(7, 8), (8, 8), (4, 12)], fill=(70, 70, 80, 255))
+    px(d, [(7, 7), (8, 8), (7, 8), (8, 7)], (40, 40, 40, 255))
+    px(d, [(7, 2), (2, 7), (13, 7), (7, 13)], (120, 90, 30, 255))
+    return outline(im)
+
+def eye():
+    im = img(); d = ImageDraw.Draw(im)
+    d.ellipse((1, 4, 14, 11), fill=(240, 240, 245, 255))
+    d.ellipse((5, 4, 10, 11), fill=(60, 160, 220, 255))
+    d.ellipse((6, 6, 9, 9), fill=(20, 20, 30, 255))
+    px(d, [(6, 6)], (255, 255, 255, 255))
+    return outline(im)
+
+def wand():
+    im = img(); d = ImageDraw.Draw(im)
+    d.line((2, 13, 10, 5), fill=(60, 40, 80, 255), width=2)
+    px(d, [(3, 13), (2, 12)], (230, 230, 240, 255))
+    for (x, y) in [(11, 2), (11, 6), (9, 4), (13, 4)]:
+        d.line((x, y, 11, 4), fill=(255, 220, 60, 255))
+    px(d, [(11, 4)], (255, 255, 255, 255))
+    px(d, [(5, 3), (14, 9), (2, 6)], (255, 150, 230, 255))
+    return outline(im)
+
+def gear():
+    im = img(); d = ImageDraw.Draw(im)
+    for (x, y) in [(7, 1), (7, 12), (1, 7), (12, 7), (3, 3), (11, 3), (3, 11), (11, 11)]:
+        d.rectangle((x, y, x + 2, y + 2) if x in (7,) or y in (7,) else (x, y, x + 1, y + 1), fill=(150, 155, 165, 255))
+    d.ellipse((3, 3, 12, 12), fill=(150, 155, 165, 255))
+    d.ellipse((4, 4, 11, 11), fill=(185, 190, 200, 255))
+    d.ellipse((6, 6, 9, 9), fill=(0, 0, 0, 0))
+    return outline(im)
+
+def gift():
+    im = img(); d = ImageDraw.Draw(im)
+    d.rectangle((2, 6, 13, 14), fill=(200, 50, 70, 255))
+    d.rectangle((1, 4, 14, 7), fill=(225, 70, 90, 255))
+    d.rectangle((7, 4, 8, 14), fill=(255, 210, 60, 255))
+    d.rectangle((1, 5, 14, 5), fill=(255, 210, 60, 255))
+    d.polygon([(7, 4), (4, 1), (3, 3)], fill=(255, 210, 60, 255))
+    d.polygon([(8, 4), (11, 1), (12, 3)], fill=(255, 210, 60, 255))
+    return outline(im)
+
+def portal():
+    im = img(); d = ImageDraw.Draw(im)
+    d.rectangle((2, 1, 13, 14), fill=(30, 20, 45, 255))
+    d.rectangle((4, 3, 11, 12), fill=(140, 60, 220, 255))
+    d.rectangle((5, 4, 10, 11), fill=(180, 100, 250, 255))
+    px(d, [(6, 5), (8, 7), (7, 9), (9, 5), (6, 10)], (230, 190, 255, 255))
+    return outline(im)
+
+def arrow(right=True):
+    im = img(); d = ImageDraw.Draw(im)
+    pts = [(3, 6), (8, 6), (8, 2), (14, 8), (8, 14), (8, 10), (3, 10)]
+    if not right:
+        pts = [(15 - x, y) for x, y in pts]
+    d.polygon(pts, fill=(80, 200, 90, 255))
+    return outline(im)
+
+def cross():
+    im = img(); d = ImageDraw.Draw(im)
+    d.line((3, 3, 12, 12), fill=(220, 50, 50, 255), width=3)
+    d.line((12, 3, 3, 12), fill=(220, 50, 50, 255), width=3)
+    return outline(im)
+
+def scaled(fn):
+    return outline(fn())
+
+ITEMS = [
+    # Spielmodi
+    ("mode_missilewars", rocket()), ("mode_hideandseek", magnifier()), ("mode_zombies", zombie()),
+    ("mode_worldevolution", globe()), ("mode_lobby", house()),
+    # Lobby-Menüs & Hotbar
+    ("navigator", compass()), ("visibility", eye()), ("cosmetics", wand()), ("settings", gear()),
+    ("daily", gift()), ("lottery", outline(ticket())), ("switcher", portal()), ("coins", outline(coin())),
+    ("friends", outline(friends())), ("party", outline(party())), ("clan", outline(shield())),
+    ("back", arrow(False)), ("next", arrow(True)), ("close", cross()),
+]
+
 # ---------------------------------------------------------------- Rang-Badges
 # 5x7-Pixelschrift (doppelte Auflösung: Badge 16 px hoch → im Spiel 8 px, gestochen scharf)
 FONT = {
@@ -215,7 +376,7 @@ def main():
     #  <1.20.2 liest pack_format | 1.20.2–1.21.8 liest supported_formats | ab 1.21.9/26.x min_format/max_format
     mcmeta = {
         "pack": {
-            "description": "§bLobbySystem §7– Icons & UI",
+            "description": "§bCrafterTeam §7– Icons, Ränge & Menüs",
             "pack_format": 15,
             "supported_formats": {"min_inclusive": 15, "max_inclusive": 9999},
             "min_format": 15,
@@ -233,6 +394,14 @@ def main():
         files[f"assets/lobbysystem/textures/font/rank/{key}.png"] = buf.getvalue()
         providers.append({"type": "bitmap", "file": f"lobbysystem:font/rank/{key}.png", "ascent": 7, "height": 8, "chars": [ch]})
     files["assets/minecraft/font/default.json"] = json.dumps({"providers": providers}, indent=2).encode()
+    # Item-Icons: textures/item + models/item + items/ (item_model-Definition ab 1.21.4)
+    for name, im in ITEMS:
+        buf = io.BytesIO(); im.save(buf, "PNG", optimize=True)
+        files[f"assets/lobbysystem/textures/item/{name}.png"] = buf.getvalue()
+        files[f"assets/lobbysystem/models/item/{name}.json"] = json.dumps(
+            {"parent": "minecraft:item/generated", "textures": {"layer0": f"lobbysystem:item/{name}"}}, indent=2).encode()
+        files[f"assets/lobbysystem/items/{name}.json"] = json.dumps(
+            {"model": {"type": "minecraft:model", "model": f"lobbysystem:item/{name}"}}, indent=2).encode()
     buf = io.BytesIO(); pack_png().save(buf, "PNG", optimize=True)
     files["pack.png"] = buf.getvalue()
 

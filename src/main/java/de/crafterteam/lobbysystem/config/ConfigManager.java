@@ -72,6 +72,43 @@ public final class ConfigManager {
             config.migrations.add("navigator_missilewars");
             changed = true;
         }
+        if (!config.migrations.contains("navigator_modes_2_8")) {
+            // Alte Beispiel-Einträge (Skyblock, Creative …) → neue Spielmodi; eigene Navigatoren werden nur ergänzt
+            boolean examples = config.navigatorItems.stream().anyMatch(l -> l.contains("warp:skyblock"))
+                    && config.navigatorItems.stream().anyMatch(l -> l.contains("warp:creative"));
+            if (examples) {
+                config.navigatorItems = PluginConfig.defaultNavigator();
+                plugin.getLogger().info("Navigator: Beispiel-Einträge durch HideAndSeek, MissileWars, Zombies & WorldEvolution ersetzt.");
+            } else {
+                String[][] modes = {
+                        {"SPYGLASS", "mode_hideandseek", "HideAndSeek", "<aqua><b>ʜɪᴅᴇ ᴀɴᴅ ꜱᴇᴇᴋ</b>", "Verstecke dich als Block – oder suche!"},
+                        {"TNT", "mode_missilewars", "MissileWars", "<red><b>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ</b>", "Raketen, Schilde & Portale"},
+                        {"ZOMBIE_HEAD", "mode_zombies", "Zombies", "<dark_green><b>ᴢᴏᴍʙɪᴇꜱ</b>", "Überlebe Welle um Welle im Team"},
+                        {"GRASS_BLOCK", "mode_worldevolution", "WorldEvolution", "<green><b>ᴡᴏʀʟᴅ ᴇᴠᴏʟᴜᴛɪᴏɴ</b>", "Deine Welt entwickelt sich weiter"}};
+                for (String[] mode : modes) {
+                    String key = mode[2].toLowerCase();
+                    int idx = -1;
+                    for (int i = 0; i < config.navigatorItems.size(); i++) if (config.navigatorItems.get(i).toLowerCase().contains(key)) idx = i;
+                    if (idx >= 0) {
+                        // vorhandenen Eintrag nur um das Icon ergänzen
+                        String[] parts = config.navigatorItems.get(idx).split(";", 3);
+                        if (parts.length == 3 && !parts[1].contains("@")) config.navigatorItems.set(idx, parts[0] + ";" + parts[1] + "@" + mode[1] + ";" + parts[2]);
+                        continue;
+                    }
+                    int slot = freeNavigatorSlot();
+                    if (slot >= 0) config.navigatorItems.add(PluginConfig.modeEntry(slot, mode[0], mode[1], mode[2], mode[3], mode[4]));
+                }
+            }
+            for (String g : new String[]{"hideandseek", "zombies", "worldevolution"}) {
+                config.integrations.games.putIfAbsent(g, switch (g) {
+                    case "hideandseek" -> "<aqua>Hide and Seek";
+                    case "zombies" -> "<dark_green>Zombies";
+                    default -> "<green>World Evolution";
+                });
+            }
+            config.migrations.add("navigator_modes_2_8");
+            changed = true;
+        }
         if (!config.migrations.contains("hotbar_cleanup_2_7")) {
             // Hotbar aufräumen: 0 Navigator · 1 Sichtbarkeit · 4 Gadget · 6 Extras · 7 Freunde · 8 Profil
             for (String key : new String[]{"silentlobby", "lobbyswitcher", "lottery"}) {

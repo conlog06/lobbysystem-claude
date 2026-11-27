@@ -98,6 +98,8 @@ public class PluginConfig {
         public String material;
         public String name;
         public List<String> lore = new ArrayList<>();
+        /** Icon aus dem Ressourcenpaket (lobbysystem:&lt;icon&gt;), leer = normales Material */
+        public String icon = "";
 
         public HotbarItem() {
         }
@@ -335,10 +337,18 @@ public class PluginConfig {
         /** Ränge aus LuckPerms (Gruppe, Prefix, Gewichtung) statt ranks.json – benötigt LuckPerms */
         public boolean luckPermsRanks = false;
         /** Stats anderer Spielmodi im Profil: game-id → Anzeigename */
-        public Map<String, String> games = new LinkedHashMap<>(Map.of(
-                "missilewars", "<red>Missile Wars",
-                "bedwars", "<red>BedWars",
-                "skywars", "<aqua>SkyWars"));
+        public Map<String, String> games = defaultGames();
+
+        private static Map<String, String> defaultGames() {
+            Map<String, String> m = new LinkedHashMap<>();
+            m.put("missilewars", "<red>Missile Wars");
+            m.put("hideandseek", "<aqua>Hide and Seek");
+            m.put("zombies", "<dark_green>Zombies");
+            m.put("worldevolution", "<green>World Evolution");
+            m.put("bedwars", "<red>BedWars");
+            m.put("skywars", "<aqua>SkyWars");
+            return m;
+        }
     }
 
     public static class Speed {
@@ -479,20 +489,31 @@ public class PluginConfig {
         return m;
     }
 
-    private static List<String> defaultNavigator() {
+    /** Spielmodus-Eintrag: Live-Spielerzahl & Status über {players:Name*} / {state:Name*}, Icon aus dem Ressourcenpaket. */
+    public static String modeEntry(int slot, String material, String icon, String server, String title, String description) {
+        return slot + ";" + material + "@" + icon + ";connect-best:" + server + ";<dark_gray>»</dark_gray> " + title + ";"
+                + "<dark_gray>»</dark_gray> <gray>" + description + "\n\n"
+                + "<dark_gray>»</dark_gray> <gray>Spieler: <white>{players:" + server + "*}\n"
+                + "<dark_gray>»</dark_gray> {state:" + server + "*}\n\n"
+                + "<dark_gray>»</dark_gray> <yellow>Klicke zum Spielen";
+    }
+
+    public static List<String> defaultNavigator() {
         return new ArrayList<>(List.of(
-                "12;IRON_AXE;connect:CityBuild-1;<dark_gray>»</dark_gray> <dark_green>ᴄɪᴛʏʙᴜɪʟᴅ;<dark_gray>»</dark_gray> <gray>Klicke zum Joinen",
-                "14;DIAMOND_PICKAXE;warp:skyblock;<dark_gray>»</dark_gray> <aqua>ꜱᴋʏʙʟᴏᴄᴋ;<dark_gray>»</dark_gray> <gray>Klicke zum Teleportieren",
-                "19;CRAFTING_TABLE;warp:creative;<dark_gray>»</dark_gray> <gold>ᴄʀᴇᴀᴛɪᴠᴇ;<dark_gray>»</dark_gray> <gray>Klicke zum Teleportieren",
-                "25;RED_BED;warp:bedwars;<dark_gray>»</dark_gray> <red>ʙᴇᴅᴡᴀʀꜱ;<dark_gray>»</dark_gray> <gray>Klicke zum Teleportieren",
-                "31;CHEST;spawn;<dark_gray>»</dark_gray> <yellow>ꜱᴘᴀᴡɴ;<dark_gray>»</dark_gray> <gray>Zurück zum Spawn",
-                "29;TNT;connect-best:MissileWars;<dark_gray>»</dark_gray> <red>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ;<dark_gray>»</dark_gray> <gray>Spieler: <white>{players:MissileWars*}\n<dark_gray>»</dark_gray> {state:MissileWars*}\n\n<dark_gray>»</dark_gray> <yellow>Klicke zum Spielen",
-                "38;REPEATER;warp:minigames;<dark_gray>»</dark_gray> <light_purple>ᴍɪɴɪɢᴀᴍᴇꜱ;<dark_gray>»</dark_gray> <gray>Klicke zum Teleportieren",
-                "42;GLOWSTONE_DUST;warp:events;<dark_gray>»</dark_gray> <yellow>ᴇᴠᴇɴᴛꜱ;<dark_gray>»</dark_gray> <gray>Klicke zum Teleportieren"
+                modeEntry(19, "SPYGLASS", "mode_hideandseek", "HideAndSeek", "<aqua><b>ʜɪᴅᴇ ᴀɴᴅ ꜱᴇᴇᴋ</b>", "Verstecke dich als Block – oder suche!"),
+                modeEntry(21, "TNT", "mode_missilewars", "MissileWars", "<red><b>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ</b>", "Raketen, Schilde & Portale"),
+                modeEntry(23, "ZOMBIE_HEAD", "mode_zombies", "Zombies", "<dark_green><b>ᴢᴏᴍʙɪᴇꜱ</b>", "Überlebe Welle um Welle im Team"),
+                modeEntry(25, "GRASS_BLOCK", "mode_worldevolution", "WorldEvolution", "<green><b>ᴡᴏʀʟᴅ ᴇᴠᴏʟᴜᴛɪᴏɴ</b>", "Deine Welt entwickelt sich weiter"),
+                "40;CHEST@mode_lobby;spawn;<dark_gray>»</dark_gray> <yellow><b>ꜱᴘᴀᴡɴ</b>;<dark_gray>»</dark_gray> <gray>Zurück zum Spawn"
         ));
     }
 
     /** Aufgeräumte Hotbar (2.7): Silent-Lobby → Sichtbarkeits-Menü, Lobby-Switcher & Lotterie → Profil. */
+    private static HotbarItem icon(String icon, HotbarItem h) {
+        h.icon = icon;
+        return h;
+    }
+
     private static HotbarItem disabled(HotbarItem h) {
         h.enabled = false;
         return h;
@@ -500,22 +521,22 @@ public class PluginConfig {
 
     private static Map<String, HotbarItem> defaultHotbar() {
         Map<String, HotbarItem> m = new LinkedHashMap<>();
-        m.put("navigator", new HotbarItem(0, "COMPASS", "<dark_gray>-●</dark_gray> <gold><b>ᴛᴇʟᴇᴘᴏʀᴛᴇʀ</b>",
-                "<dark_gray>»</dark_gray> <gray>Teleportiere dich zu den Spielmodi"));
-        m.put("visibility", new HotbarItem(1, "BLAZE_ROD", "<dark_gray>-●</dark_gray> <aqua><b>ꜱᴘɪᴇʟᴇʀꜱɪᴄʜᴛʙᴀʀᴋᴇɪᴛ</b>",
-                "<dark_gray>»</dark_gray> <gray>Aktuell: {visibility}"));
+        m.put("navigator", icon("navigator", new HotbarItem(0, "COMPASS", "<dark_gray>-●</dark_gray> <gold><b>ᴛᴇʟᴇᴘᴏʀᴛᴇʀ</b>",
+                "<dark_gray>»</dark_gray> <gray>Teleportiere dich zu den Spielmodi")));
+        m.put("visibility", icon("visibility", new HotbarItem(1, "BLAZE_ROD", "<dark_gray>-●</dark_gray> <aqua><b>ꜱᴘɪᴇʟᴇʀꜱɪᴄʜᴛʙᴀʀᴋᴇɪᴛ</b>",
+                "<dark_gray>»</dark_gray> <gray>Aktuell: {visibility}")));
         m.put("silentlobby", disabled(new HotbarItem(2, "TNT", "<dark_gray>-●</dark_gray> <red><b>ꜱɪʟᴇɴᴛ ʟᴏʙʙʏ</b>",
                 "<dark_gray>»</dark_gray> <gray>Status: {silent}")));
         m.put("gadget", new HotbarItem(4, "BARRIER", "<dark_gray>-●</dark_gray> <red>Kein Gadget ausgewählt",
                 "<dark_gray>»</dark_gray> <gray>Wähle eines über die <light_purple>Extras</light_purple>"));
-        m.put("lobbyswitcher", disabled(new HotbarItem(5, "END_CRYSTAL", "<dark_gray>-●</dark_gray> <aqua><b>ʟᴏʙʙʏ-ꜱᴡɪᴛᴄʜᴇʀ</b>",
-                "<dark_gray>»</dark_gray> <gray>Wechsle die Lobby")));
+        m.put("lobbyswitcher", icon("switcher", disabled(new HotbarItem(5, "END_CRYSTAL", "<dark_gray>-●</dark_gray> <aqua><b>ʟᴏʙʙʏ-ꜱᴡɪᴛᴄʜᴇʀ</b>",
+                "<dark_gray>»</dark_gray> <gray>Wechsle die Lobby"))));
         m.put("friends", new HotbarItem(7, "PLAYER_HEAD", "<dark_gray>-●</dark_gray> <dark_aqua><b>ꜰʀᴇᴜɴᴅᴇ</b>",
                 "<dark_gray>»</dark_gray> <gray>Freunde, Party & Clan"));
-        m.put("lottery", disabled(new HotbarItem(6, "NAME_TAG", "<dark_gray>-●</dark_gray> <yellow><b>ʟᴏᴛᴛᴇʀɪᴇ</b>",
-                "<dark_gray>»</dark_gray> <gray>Du hast <yellow>{lose}</yellow> <gray>Lose")));
-        m.put("extras", new HotbarItem(6, "NETHER_STAR", "<dark_gray>-●</dark_gray> <light_purple><b>ᴇxᴛʀᴀꜱ</b>",
-                "<dark_gray>»</dark_gray> <gray>Wähle ein Extra aus."));
+        m.put("lottery", icon("lottery", disabled(new HotbarItem(6, "NAME_TAG", "<dark_gray>-●</dark_gray> <yellow><b>ʟᴏᴛᴛᴇʀɪᴇ</b>",
+                "<dark_gray>»</dark_gray> <gray>Du hast <yellow>{lose}</yellow> <gray>Lose"))));
+        m.put("extras", icon("cosmetics", new HotbarItem(6, "NETHER_STAR", "<dark_gray>-●</dark_gray> <light_purple><b>ᴇxᴛʀᴀꜱ</b>",
+                "<dark_gray>»</dark_gray> <gray>Wähle ein Extra aus.")));
         m.put("profile", new HotbarItem(8, "PLAYER_HEAD", "<dark_gray>-●</dark_gray> <green><b>ᴘʀᴏꜰɪʟ</b>",
                 "<dark_gray>»</dark_gray> <gray>Deine Statistiken & Einstellungen"));
         return m;

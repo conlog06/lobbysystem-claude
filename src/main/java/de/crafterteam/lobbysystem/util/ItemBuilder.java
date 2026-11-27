@@ -116,6 +116,21 @@ public final class ItemBuilder {
         return this;
     }
 
+    /**
+     * Eigenes Icon aus dem Ressourcenpaket (item_model = lobbysystem:&lt;key&gt;) – nur, wenn der Spieler das Pack geladen hat,
+     * sonst bleibt das normale Material (kein lila-schwarzes "Fehlt"-Icon).
+     */
+    public ItemBuilder icon(org.bukkit.entity.Player viewer, String key) {
+        if (key == null || key.isBlank() || viewer == null) return this;
+        if (!de.crafterteam.lobbysystem.pack.ResourcePackManager.icons(viewer)) return this;
+        try {
+            meta.setItemModel(new org.bukkit.NamespacedKey("lobbysystem", key.toLowerCase()));
+        } catch (Throwable ignored) {
+            // ältere Server-API ohne item_model
+        }
+        return this;
+    }
+
     public ItemStack build() {
         item.setItemMeta(meta);
         return item;

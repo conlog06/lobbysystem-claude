@@ -61,7 +61,7 @@ public final class ProfileMenu extends Menu {
                         "<dark_gray>↪</dark_gray> {i_rank} <gray>Lobby-Level: <gold>" + plugin.levels().level(d.xp()),
                         "<dark_gray>↪</dark_gray> " + plugin.levels().bar(d.xp(), 25)).build());
         set(13, new ItemBuilder(Material.COMPARATOR).name("<dark_gray>»</dark_gray> <aqua>Einstellungen")
-                .lore("<dark_gray>↪</dark_gray> <gray>Passe deine Lobby an").build(), e -> {
+                .lore("<dark_gray>↪</dark_gray> <gray>Passe deine Lobby an").icon(player, "settings").build(), e -> {
             click();
             new SettingsMenu(plugin, player).open();
         });
@@ -74,8 +74,9 @@ public final class ProfileMenu extends Menu {
                 new CookieMenu(plugin, player).open();
             });
         }
-        set(15, new ItemBuilder(Material.CLOCK).name("<dark_gray>»</dark_gray> <light_purple>Tägliche Belohnung")
-                .lore("<dark_gray>↪</dark_gray> <gray>Hol dir Coins & Lose").build(), e -> {
+        // Kiste statt Uhr: die Uhr wird bei manchen Clients/Packs als "fehlende Textur" angezeigt
+        set(15, new ItemBuilder(Material.CHEST).name("<dark_gray>»</dark_gray> <light_purple>Tägliche Belohnung")
+                .lore("<dark_gray>↪</dark_gray> <gray>Hol dir Coins & Lose").icon(player, "daily").build(), e -> {
             click();
             new DailyRewardMenu(plugin, player).open();
         });
@@ -83,13 +84,13 @@ public final class ProfileMenu extends Menu {
         // Lotterie & Lobby-Switcher (vorher eigene Hotbar-Items)
         set(29, new ItemBuilder(Material.NAME_TAG).name("<dark_gray>»</dark_gray> <yellow>Lotterie")
                 .lore("<dark_gray>↪</dark_gray> <gray>Du hast <yellow>" + d.lose() + "</yellow> <gray>Lose", "",
-                        "<dark_gray>»</dark_gray> <yellow>Klicke zum Öffnen").build(), e -> {
+                        "<dark_gray>»</dark_gray> <yellow>Klicke zum Öffnen").icon(player, "lottery").build(), e -> {
             click();
             new LotteryMenu(plugin, player).open();
         });
         set(33, new ItemBuilder(Material.END_CRYSTAL).name("<dark_gray>»</dark_gray> <aqua>Lobby wechseln")
                 .lore("<dark_gray>↪</dark_gray> <gray>Alle Lobbys mit Spielerzahl", "",
-                        "<dark_gray>»</dark_gray> <yellow>Klicke zum Öffnen").build(), e -> {
+                        "<dark_gray>»</dark_gray> <yellow>Klicke zum Öffnen").icon(player, "switcher").build(), e -> {
             click();
             LobbySwitcherMenu.open(plugin, player);
         });
@@ -99,13 +100,14 @@ public final class ProfileMenu extends Menu {
         int[] slots = {20, 21, 22, 23, 24};
         if (games.isEmpty()) {
             set(22, new ItemBuilder(Material.TNT).name("<dark_gray>»</dark_gray> <red>Missile Wars")
-                    .lore("<dark_gray>↪</dark_gray> <gray>Noch keine Runde gespielt", "<dark_gray>»</dark_gray> <yellow>Über den Navigator spielen").build());
+                    .lore("<dark_gray>↪</dark_gray> <gray>Noch keine Runde gespielt", "<dark_gray>»</dark_gray> <yellow>Über den Navigator spielen")
+                    .icon(player, "mode_missilewars").build());
         }
         for (int i = 0; i < games.size() && i < slots.length; i++) {
             GameStats g = games.get(i);
             double kd = g.deaths() == 0 ? g.kills() : (double) g.kills() / g.deaths();
             double wr = g.games() == 0 ? 0 : 100.0 * g.wins() / g.games();
-            set(slots[i], new ItemBuilder(icon(g.game())).name("<dark_gray>»</dark_gray> " + title(g.game()))
+            set(slots[i], new ItemBuilder(icon(g.game())).icon(player, "mode_" + g.game()).name("<dark_gray>»</dark_gray> " + title(g.game()))
                     .lore("<dark_gray>↪</dark_gray> <gray>Level: <gold>" + g.level(),
                             "<dark_gray>↪</dark_gray> <gray>Siege: <green>" + g.wins() + " <dark_gray>(" + String.format(Locale.GERMANY, "%.0f", wr) + " %)",
                             "<dark_gray>↪</dark_gray> <gray>Runden: <white>" + g.games(),
@@ -132,6 +134,9 @@ public final class ProfileMenu extends Menu {
             case "missilewars" -> Material.TNT;
             case "bedwars" -> Material.RED_BED;
             case "skywars" -> Material.FEATHER;
+            case "hideandseek" -> Material.SPYGLASS;
+            case "zombies" -> Material.ZOMBIE_HEAD;
+            case "worldevolution" -> Material.GRASS_BLOCK;
             default -> Material.IRON_SWORD;
         };
     }

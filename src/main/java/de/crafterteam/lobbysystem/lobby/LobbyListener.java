@@ -90,7 +90,7 @@ public final class LobbyListener implements Listener {
 
         plugin.initPlayer(player, true);
         plugin.lobby().welcome(player);
-        plugin.pack().send(player);
+        plugin.pack().join(player);
         plugin.data().presence(player.getUniqueId(), c().cfg().proxyServerName);
         plugin.clans().refresh(player.getUniqueId());
         // kurz warten, damit der Online-Status in der DB steht

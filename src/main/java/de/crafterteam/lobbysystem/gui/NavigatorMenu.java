@@ -79,13 +79,16 @@ public final class NavigatorMenu extends Menu {
                 plugin.getLogger().warning("Ungültiger Slot in navigatorItem: " + line);
                 continue;
             }
-            Material mat = ItemBuilder.material(p[1], Material.STONE);
+            // "TNT@mode_missilewars" = Material + Icon aus dem Ressourcenpaket
+            String[] matIcon = p[1].split("@", 2);
+            Material mat = ItemBuilder.material(matIcon[0], Material.STONE);
+            String icon = matIcon.length > 1 ? matIcon[1].trim() : "";
             String target = p[2].trim();
             List<String> lore = p.length > 4 ? new ArrayList<>(Arrays.asList(live(p[4]).split("\\\\n|\n"))) : List.of();
             int amount = 1;
             Matcher pm = Pattern.compile("connect-best:(.+)").matcher(target);
             if (pm.matches()) amount = Math.max(1, Math.min(64, plugin.servers().players(pm.group(1) + "*")));
-            set(slot, new ItemBuilder(mat).name(live(p[3])).lore(lore).amount(amount).hideFlags().build(), e -> {
+            set(slot, new ItemBuilder(mat).name(live(p[3])).lore(lore).amount(amount).hideFlags().icon(player, icon).build(), e -> {
                 click();
                 plugin.lobby().runTarget(player, target);
             });
