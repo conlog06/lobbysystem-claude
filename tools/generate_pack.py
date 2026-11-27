@@ -266,6 +266,92 @@ def cross():
 def scaled(fn):
     return outline(fn())
 
+# ---- MissileWars-Menüs
+def check_badge(color=(70, 200, 80, 255), dark=(35, 130, 45, 255), cross_=False):
+    im = img(); d = ImageDraw.Draw(im)
+    d.ellipse((1, 1, 14, 14), fill=dark)
+    d.ellipse((2, 2, 13, 13), fill=color)
+    if cross_:
+        d.line((5, 5, 10, 10), fill=(255, 255, 255, 255), width=2)
+        d.line((10, 5, 5, 10), fill=(255, 255, 255, 255), width=2)
+    else:
+        d.line((4, 8, 7, 11), fill=(255, 255, 255, 255), width=2)
+        d.line((7, 11, 12, 4), fill=(255, 255, 255, 255), width=2)
+    return outline(im)
+
+def door():
+    im = img(); d = ImageDraw.Draw(im)
+    d.rectangle((3, 1, 12, 14), fill=(120, 70, 35, 255))
+    d.rectangle((4, 2, 11, 14), fill=(160, 100, 50, 255))
+    d.rectangle((5, 3, 10, 7), fill=(130, 80, 40, 255))
+    d.rectangle((5, 9, 10, 13), fill=(130, 80, 40, 255))
+    px(d, [(10, 8)], (255, 220, 80, 255))
+    return outline(im)
+
+def bag():
+    im = img(); d = ImageDraw.Draw(im)
+    d.ellipse((2, 5, 13, 15), fill=(70, 170, 80, 255))
+    d.rectangle((5, 3, 10, 6), fill=(70, 170, 80, 255))
+    d.line((5, 6, 10, 6), fill=(255, 210, 60, 255))
+    d.polygon([(7, 8), (9, 10), (7, 13), (5, 10)], fill=(120, 255, 170, 255))   # Smaragd
+    px(d, [(7, 9)], (220, 255, 230, 255))
+    return outline(im)
+
+def play():
+    im = img(); d = ImageDraw.Draw(im)
+    d.rounded_rectangle((1, 1, 14, 14), radius=3, fill=(40, 150, 70, 255))
+    d.rounded_rectangle((2, 2, 13, 13), radius=2, fill=(80, 210, 110, 255))
+    d.polygon([(6, 4), (11, 8), (6, 12)], fill=(255, 255, 255, 255))
+    return outline(im)
+
+def mapicon():
+    im = img(); d = ImageDraw.Draw(im)
+    d.polygon([(1, 3), (5, 1), (10, 3), (14, 1), (14, 13), (10, 15), (5, 13), (1, 15)], fill=(225, 210, 160, 255))
+    d.line((5, 1, 5, 13), fill=(180, 160, 110, 255)); d.line((10, 3, 10, 15), fill=(180, 160, 110, 255))
+    d.ellipse((6, 5, 9, 8), fill=(220, 50, 50, 255))
+    d.line((7, 8, 7, 11), fill=(220, 50, 50, 255))
+    return outline(im)
+
+def sword():
+    im = img(); d = ImageDraw.Draw(im)
+    d.line((4, 11, 12, 3), fill=(210, 215, 225, 255), width=2)
+    d.line((12, 3, 13, 2), fill=(240, 240, 250, 255))
+    d.line((3, 9, 6, 12), fill=(140, 100, 40, 255), width=2)
+    d.line((2, 13, 4, 11), fill=(90, 60, 30, 255), width=2)
+    return outline(im)
+
+def chart():
+    im = img(); d = ImageDraw.Draw(im)
+    d.rectangle((1, 1, 14, 14), fill=(240, 240, 245, 255))
+    d.rectangle((3, 9, 5, 12), fill=(70, 160, 230, 255))
+    d.rectangle((7, 6, 9, 12), fill=(80, 200, 100, 255))
+    d.rectangle((11, 3, 13, 12), fill=(240, 170, 40, 255))
+    d.line((2, 13, 13, 13), fill=(90, 90, 100, 255))
+    return outline(im)
+
+def trophy():
+    im = img(); d = ImageDraw.Draw(im)
+    d.rectangle((4, 2, 11, 7), fill=(255, 200, 40, 255))
+    d.ellipse((4, 4, 11, 10), fill=(255, 200, 40, 255))
+    d.arc((1, 2, 6, 7), 90, 270, fill=(220, 160, 20, 255))
+    d.arc((9, 2, 14, 7), 270, 90, fill=(220, 160, 20, 255))
+    d.rectangle((7, 10, 8, 12), fill=(220, 160, 20, 255))
+    d.rectangle((4, 12, 11, 14), fill=(140, 90, 40, 255))
+    px(d, [(6, 4), (6, 5)], (255, 245, 180, 255))
+    return outline(im)
+
+def starmenu():
+    im = img(); d = ImageDraw.Draw(im)
+    pts = []
+    import math
+    for i in range(10):
+        r = 7 if i % 2 == 0 else 3
+        a = -math.pi / 2 + i * math.pi / 5
+        pts.append((7.5 + r * math.cos(a), 8 + r * math.sin(a)))
+    d.polygon(pts, fill=(150, 210, 255, 255))
+    d.polygon([(7.5, 4), (9, 8), (7.5, 11), (6, 8)], fill=(230, 245, 255, 255))
+    return outline(im)
+
 ITEMS = [
     # Spielmodi
     ("mode_missilewars", rocket()), ("mode_hideandseek", magnifier()), ("mode_zombies", zombie()),
@@ -275,6 +361,10 @@ ITEMS = [
     ("daily", gift()), ("lottery", outline(ticket())), ("switcher", portal()), ("coins", outline(coin())),
     ("friends", outline(friends())), ("party", outline(party())), ("clan", outline(shield())),
     ("back", arrow(False)), ("next", arrow(True)), ("close", cross()),
+    # MissileWars
+    ("mw_ready", check_badge()), ("mw_notready", check_badge((150, 150, 160, 255), (90, 90, 100, 255), True)),
+    ("mw_menu", starmenu()), ("mw_leave", door()), ("mw_shop", bag()), ("mw_start", play()), ("mw_vote", mapicon()),
+    ("mw_kit", sword()), ("mw_stats", chart()), ("mw_achievements", trophy()),
 ]
 
 # ---------------------------------------------------------------- Rang-Badges
