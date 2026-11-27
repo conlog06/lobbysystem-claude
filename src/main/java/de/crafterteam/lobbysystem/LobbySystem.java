@@ -110,7 +110,7 @@ public final class LobbySystem extends JavaPlugin {
         LobbyCommands commands = new LobbyCommands(this);
         SocialCommands social = new SocialCommands(this);
         for (String cmd : new String[]{"friend", "party", "clan"}) register(cmd, social);
-        for (String cmd : new String[]{"lobbysystem", "pay", "level", "lobbyswitcher"}) register(cmd, commands);
+        for (String cmd : new String[]{"lobbysystem", "pay", "level", "lobbyswitcher", "rankshop"}) register(cmd, commands);
         register("license", new LicenseCommand(this));
 
         if (lobbyMode) {

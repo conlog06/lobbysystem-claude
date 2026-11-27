@@ -81,6 +81,15 @@ public final class ProfileMenu extends Menu {
             new DailyRewardMenu(plugin, player).open();
         });
 
+        // Rang-Shop
+        if (plugin.configs().cfg().rankShop.enabled) {
+            set(4, new ItemBuilder(Material.GOLD_INGOT).name("<dark_gray>»</dark_gray> <gradient:#f9d423:#ff4e50><b>Rang-Shop</b></gradient>")
+                    .lore("<dark_gray>↪</dark_gray> <gray>VIP, Premium, Premium+, Elite & Legende", "<dark_gray>↪</dark_gray> <gray>mit Coins freischalten", "",
+                            "<dark_gray>»</dark_gray> <yellow>Klicke zum Öffnen").glow(true).icon(player, "coins").build(), e -> {
+                click();
+                new RankShopMenu(plugin, player).open();
+            });
+        }
         // Lotterie & Lobby-Switcher (vorher eigene Hotbar-Items)
         set(29, new ItemBuilder(Material.NAME_TAG).name("<dark_gray>»</dark_gray> <yellow>Lotterie")
                 .lore("<dark_gray>↪</dark_gray> <gray>Du hast <yellow>" + d.lose() + "</yellow> <gray>Lose", "",

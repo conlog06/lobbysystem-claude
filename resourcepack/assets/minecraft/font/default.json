@@ -101,6 +101,24 @@
     },
     {
       "type": "bitmap",
+      "file": "lobbysystem:font/crafterteam.png",
+      "ascent": 12,
+      "height": 16,
+      "chars": [
+        "\ue200"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/ct.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue201"
+      ]
+    },
+    {
+      "type": "bitmap",
       "file": "lobbysystem:font/rank/owner.png",
       "ascent": 7,
       "height": 8,
@@ -223,6 +241,24 @@
       "height": 8,
       "chars": [
         "\ue10d"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/elite.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue10e"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "lobbysystem:font/rank/legende.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\ue10f"
       ]
     }
   ]

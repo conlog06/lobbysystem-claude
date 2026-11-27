@@ -70,6 +70,8 @@ public class PluginConfig {
 
     // ════════════════════════ 9. INTEGRATIONEN ════════════════════════
     public Integrations integrations = new Integrations();
+    /** Ränge für Coins kaufen */
+    public RankShop rankShop = new RankShop();
     /** Anbindung an das BungeeSystem (Proxy-Plugin) */
     public BungeeSystem bungeeSystem = new BungeeSystem();
 
@@ -142,7 +144,7 @@ public class PluginConfig {
 
     public static class Tablist {
         public boolean enabled = true;
-        public String header = "\n<gradient:#00d2ff:#3a7bd5><b>ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ</b></gradient>\n<gray>Willkommen, <white>{name}</white>!\n";
+        public String header = "\n{i_crafterteam}\n<gray>Willkommen, <white>{name}</white>!\n";
         public String footer = "\n<gray>Online: <green>{online}</green><dark_gray>/</dark_gray><green>{max}</green> <dark_gray>|</dark_gray> <gray>Server: <aqua>{server}</aqua>\n<dark_gray>» <gray>{date} <dark_gray>▌</dark_gray> <gray>{time} <dark_gray>«\n";
     }
 
@@ -212,6 +214,79 @@ public class PluginConfig {
         public List<LotteryReward> rewards = new ArrayList<>(List.of(
                 new LotteryReward(25, 35), new LotteryReward(50, 30), new LotteryReward(100, 18),
                 new LotteryReward(250, 10), new LotteryReward(500, 5), new LotteryReward(2500, 2)));
+    }
+
+    public static class RankOffer {
+        /** Rang-Key: Permission lobbysystem.rank.&lt;key&gt; = "hat den Rang" */
+        public String key;
+        /** LuckPerms-Gruppe */
+        public String group;
+        public String display;
+        public long price;
+        /** 0 = permanent */
+        public int days;
+        public String material;
+        public List<String> features = new ArrayList<>();
+
+        public RankOffer() {
+        }
+
+        RankOffer(String key, String display, long price, int days, String material, String... features) {
+            this.key = key;
+            this.group = key;
+            this.display = display;
+            this.price = price;
+            this.days = days;
+            this.material = material;
+            this.features = new ArrayList<>(List.of(features));
+        }
+    }
+
+    public static class RankShop {
+        public boolean enabled = true;
+        /** Kauf nur, wenn LuckPerms auf diesem Server läuft (Standard-Befehle sind LuckPerms-Befehle) */
+        public boolean requireLuckPerms = true;
+        public boolean broadcast = true;
+        public String commandPermanent = "lp user {player} parent add {group}";
+        public String commandTemporary = "lp user {player} parent addtemp {group} {days}d accumulate";
+        public List<RankOffer> ranks = new ArrayList<>(List.of(
+                new RankOffer("vip", "<green><b>VIP</b>", 500_000, 30, "EMERALD",
+                        "VIP-Badge in Chat & Tab", "Sichtbarkeit „Nur VIPs“", "1,5× Coins & doppelte Tagesbelohnung in MissileWars", "100 Freunde"),
+                new RankOffer("premium", "<gold><b>Premium</b>", 1_500_000, 30, "GOLD_INGOT",
+                        "Alles von VIP", "Premium-Tagesbelohnung in der Lobby", "Fliegen in der Lobby", "Farbiger Chat", "Party bis 16 Spieler", "200 Freunde"),
+                new RankOffer("premiumplus", "<gold><b>Premium+</b>", 5_000_000, 30, "GOLD_BLOCK",
+                        "Alles von Premium", "Alle Cosmetics", "Silent-Lobby", "MissileWars-Runden starten", "/joinme"),
+                new RankOffer("elite", "<light_purple><b>Elite</b>", 25_000_000, 0, "AMETHYST_CLUSTER",
+                        "Alles von Premium+ – für immer", "Elite-Badge", "Clan gründen kostenlos", "Kein Chat-Cooldown"),
+                new RankOffer("legende", "<gradient:#f9d423:#ff4e50><b>Legende</b></gradient>", 100_000_000, 0, "NETHER_STAR",
+                        "Alles von Elite – für immer", "Legenden-Badge mit Farbverlauf", "JoinMe ohne Abklingzeit", "Ewiger Ruhm im ganzen Netzwerk")));
+        /**
+         * /lobbysystem setupranks führt diese Befehle als Konsole aus (LuckPerms-Gruppen, Vererbung, Features).
+         * Bei geteilter LuckPerms-Datenbank gilt das sofort im ganzen Netzwerk.
+         */
+        public List<String> setupCommands = new ArrayList<>(List.of(
+                "lp creategroup vip", "lp group vip setweight 10", "lp group vip setdisplayname VIP",
+                "lp group vip meta setprefix 10 \"&a&lVIP &8• &a\"",
+                "lp group vip permission set lobbysystem.rank.vip true", "lp group vip permission set lobbysystem.vip true",
+                "lp group vip permission set lobbysystem.friends.premium true", "lp group vip permission set missilewars.vip true",
+                "lp group vip permission set bungeesystem.friends.premium true",
+                "lp creategroup premium", "lp group premium setweight 20", "lp group premium parent add vip",
+                "lp group premium meta setprefix 20 \"&6&lPREMIUM &8• &6\"",
+                "lp group premium permission set lobbysystem.rank.premium true", "lp group premium permission set lobbysystem.reward.premium true",
+                "lp group premium permission set lobbysystem.fly true", "lp group premium permission set bungeesystem.party.premium true",
+                "lp group premium permission set bungeesystem.chat.color true",
+                "lp creategroup premiumplus", "lp group premiumplus setweight 30", "lp group premiumplus parent add premium",
+                "lp group premiumplus meta setprefix 30 \"&6&lPREMIUM+ &8• &e\"",
+                "lp group premiumplus permission set lobbysystem.rank.premiumplus true", "lp group premiumplus permission set lobbysystem.cosmetics.all true",
+                "lp group premiumplus permission set lobbysystem.silentlobby true", "lp group premiumplus permission set missilewars.start true",
+                "lp group premiumplus permission set bungeesystem.joinme true",
+                "lp creategroup elite", "lp group elite setweight 40", "lp group elite parent add premiumplus",
+                "lp group elite meta setprefix 40 \"&d&lELITE &8• &d\"",
+                "lp group elite permission set lobbysystem.rank.elite true", "lp group elite permission set bungeesystem.clan.free true",
+                "lp group elite permission set lobbysystem.chat.bypass true", "lp group elite permission set bungeesystem.chat.bypass true",
+                "lp creategroup legende", "lp group legende setweight 50", "lp group legende parent add elite",
+                "lp group legende meta setprefix 50 \"&#f9d423&lLEGENDE &8• &6\"",
+                "lp group legende permission set lobbysystem.rank.legende true", "lp group legende permission set bungeesystem.joinme.bypass true"));
     }
 
     public static class BungeeSystem {
@@ -501,7 +576,9 @@ public class PluginConfig {
     public static List<String> defaultNavigator() {
         return new ArrayList<>(List.of(
                 modeEntry(19, "SPYGLASS", "mode_hideandseek", "HideAndSeek", "<aqua><b>ʜɪᴅᴇ ᴀɴᴅ ꜱᴇᴇᴋ</b>", "Verstecke dich als Block – oder suche!"),
-                modeEntry(21, "TNT", "mode_missilewars", "MissileWars", "<red><b>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ</b>", "Raketen, Schilde & Portale"),
+                modeEntry(21, "TNT", "mode_missilewars", "MissileWars", "<red><b>ᴍɪꜱꜱɪʟᴇ ᴡᴀʀꜱ</b>", "Raketen, Schilde & Portale")
+                        .replace(";connect-best:MissileWars;", ";lobbies:missilewars:MissileWars;")
+                        .replace("Klicke zum Spielen", "Klicke für die Lobby-Auswahl"),
                 modeEntry(23, "ZOMBIE_HEAD", "mode_zombies", "Zombies", "<dark_green><b>ᴢᴏᴍʙɪᴇꜱ</b>", "Überlebe Welle um Welle im Team"),
                 modeEntry(25, "GRASS_BLOCK", "mode_worldevolution", "WorldEvolution", "<green><b>ᴡᴏʀʟᴅ ᴇᴠᴏʟᴜᴛɪᴏɴ</b>", "Deine Welt entwickelt sich weiter"),
                 "40;CHEST@mode_lobby;spawn;<dark_gray>»</dark_gray> <yellow><b>ꜱᴘᴀᴡɴ</b>;<dark_gray>»</dark_gray> <gray>Zurück zum Spawn"
@@ -678,6 +755,13 @@ public class PluginConfig {
         m.put("cookie_golden", "<gold><b>ɢᴏʟᴅᴇɴᴇʀ ᴋᴇᴋꜱ!</b></gold> <gray>+<gold>{cookies} Kekse");
         m.put("cookie_sold", "<gray>Du hast <gold>{cookies} Kekse</gold> <gray>gegen {i_coin} <yellow>{coins} Coins</yellow> <gray>getauscht.");
         m.put("cookie_sell_limit", "<red>Tageslimit erreicht – morgen kannst du wieder Kekse tauschen.");
+        m.put("rankshop_not_enough", "<red>Dir fehlen <white>{missing} Coins</white> für {rank}<red>.");
+        m.put("rankshop_no_luckperms", "<red>Der Rang-Shop braucht LuckPerms auf diesem Server.");
+        m.put("rankshop_failed", "<red>Der Rang konnte nicht vergeben werden – deine Coins wurden zurückgebucht.");
+        m.put("rankshop_bought", "<green>Glückwunsch! <gray>Du hast jetzt {rank} <gray>({days}).");
+        m.put("rankshop_broadcast", "<gold>✦ <white>{name}</white> <gray>hat sich {rank} <gray>gekauft! <gold>✦");
+        m.put("rankshop_disabled", "<red>Der Rang-Shop ist deaktiviert.");
+        m.put("setupranks_done", "<green>{count} LuckPerms-Befehle ausgeführt. <gray>Ränge: VIP, Premium, Premium+, Elite, Legende");
         m.put("game_offline", "<red>Aktuell ist kein <white>{game}</white><red>-Server erreichbar.");
         m.put("lobby_switch_same", "<red>Du bist bereits auf dieser Lobby.");
         m.put("streak", "<gray>Login-Streak: <gold>{streak} Tage</gold> <dark_gray>(</dark_gray><yellow>+{bonus} Bonus-Coins</yellow><dark_gray>)");

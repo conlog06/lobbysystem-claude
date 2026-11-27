@@ -78,6 +78,12 @@ public final class LobbyCommands implements TabExecutor {
                 if (p != null) de.crafterteam.lobbysystem.gui.LobbySwitcherMenu.open(plugin, p);
             }
             case "lobbysystem" -> admin(sender, args);
+            case "rankshop" -> {
+                Player p = player(sender);
+                if (p == null) return true;
+                if (!c().cfg().rankShop.enabled) c().send(p, "rankshop_disabled");
+                else new de.crafterteam.lobbysystem.gui.RankShopMenu(plugin, p).open();
+            }
             default -> {
                 return false;
             }
@@ -357,6 +363,20 @@ public final class LobbyCommands implements TabExecutor {
     // ---------------------------------------------------------------- /lobbysystem
 
     private void admin(CommandSender sender, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("setupranks")) {
+            if (!check(sender, "reload")) return;
+            if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) {
+                c().send(sender, "rankshop_no_luckperms");
+                return;
+            }
+            int n = 0;
+            for (String cmd : c().cfg().rankShop.setupCommands) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.startsWith("/") ? cmd.substring(1) : cmd);
+                n++;
+            }
+            c().send(sender, "setupranks_done", "count", Integer.toString(n));
+            return;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
             if (!check(sender, "reload")) return;
             plugin.reload();

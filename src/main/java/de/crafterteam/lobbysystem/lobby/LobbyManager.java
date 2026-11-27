@@ -269,6 +269,13 @@ public final class LobbyManager {
                 if (best == null) c().send(player, "game_offline", "game", value);
                 else connect(player, best.name());
             }
+            case "lobbies" -> {
+                // lobbies:missilewars:MissileWars[:Titel] → Lobby-Auswahl (mehrere Runden auf einem Server)
+                String[] v = value.split(":", 3);
+                String game = v[0].toLowerCase(), prefix = v.length > 1 ? v[1] : v[0];
+                String title = v.length > 2 ? v[2] : "<gradient:#ff4b2b:#ff9068>" + prefix + "</gradient>";
+                de.crafterteam.lobbysystem.gui.GameLobbiesMenu.open(plugin, player, game, prefix, title);
+            }
             case "command", "cmd" -> player.performCommand(value.startsWith("/") ? value.substring(1) : value);
             case "spawn" -> teleportSpawn(player, true);
             default -> {

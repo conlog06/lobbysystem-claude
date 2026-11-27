@@ -72,6 +72,10 @@ commands:
   level:
     description: Zeigt dein Lobby-Level
     usage: /level [Spieler]
+  rankshop:
+    description: Rang-Shop – Ränge für Coins kaufen
+    usage: /rankshop
+    aliases: [rangshop, ränge, raenge, ranks]
   lobbysystem:
     description: Infos & Reload
     usage: /lobbysystem <reload|info>

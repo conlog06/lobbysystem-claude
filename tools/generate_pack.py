@@ -358,6 +358,30 @@ BADGES = [
     ("vip",         "", "VIP",      (60, 120, 230)),
     ("spieler",     "", "SPIELER",  (110, 110, 120)),
     ("team",        "", "TEAM",     (90, 60, 200)),
+    ("elite",       "", "ELITE",    (170, 60, 220)),
+    ("legende",     "", "LEGENDE",  (235, 120, 20)),
+]
+
+def logo():
+    """CRAFTERTEAM-Schriftzug: Verlauf Cyan → Blau, doppelte Größe eines Badges."""
+    base = badge("CRAFTERTEAM", (0, 170, 230))
+    w, h = base.size
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    for x in range(w):
+        t = x / max(1, w - 1)
+        tint = (int(0 + 58 * t), int(210 - 87 * t), int(255 - 42 * t))
+        for y in range(h):
+            r, g, b, al = base.getpixel((x, y))
+            if al == 0 or (r, g, b) == (255, 255, 255) or r < 60 and g < 60:
+                im.putpixel((x, y), (r, g, b, al))
+            else:
+                f = (r + g + b) / (3 * 200)
+                im.putpixel((x, y), (min(255, int(tint[0] * f)), min(255, int(tint[1] * f)), min(255, int(tint[2] * f)), al))
+    return im
+
+LOGOS = [
+    ("crafterteam", "\ue200", None, 16, 12),
+    ("ct", "\ue201", None, 8, 7),
 ]
 
 def pack_png():
@@ -370,7 +394,12 @@ def pack_png():
     im.alpha_composite(big, (16, 16))
     return im
 
+def _logos():
+    global LOGOS
+    LOGOS = [(n, c, logo() if n == "crafterteam" else badge("CT", (0, 170, 230)), h, asc) for n, c, _, h, asc in LOGOS]
+
 def main():
+    _logos()
     files = {}
     # Kompatibel mit allen Versionen:
     #  <1.20.2 liest pack_format | 1.20.2–1.21.8 liest supported_formats | ab 1.21.9/26.x min_format/max_format
@@ -389,6 +418,11 @@ def main():
         buf = io.BytesIO(); im.save(buf, "PNG", optimize=True)
         files[f"assets/lobbysystem/textures/font/{name}.png"] = buf.getvalue()
         providers.append({"type": "bitmap", "file": f"lobbysystem:font/{name}.png", "ascent": 8, "height": 9, "chars": [ch]})
+    # CrafterTeam-Logo (groß, für Tab-Header) & kleiner CT-Tag (Chat/Scoreboard)
+    for name, ch, im, height, ascent in LOGOS:
+        buf = io.BytesIO(); im.save(buf, "PNG", optimize=True)
+        files[f"assets/lobbysystem/textures/font/{name}.png"] = buf.getvalue()
+        providers.append({"type": "bitmap", "file": f"lobbysystem:font/{name}.png", "ascent": ascent, "height": height, "chars": [ch]})
     for key, ch, text, color in BADGES:
         buf = io.BytesIO(); badge(text, color).save(buf, "PNG", optimize=True)
         files[f"assets/lobbysystem/textures/font/rank/{key}.png"] = buf.getvalue()

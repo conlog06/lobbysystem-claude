@@ -47,9 +47,9 @@ public final class ConfigManager {
             plugin.getLogger().log(Level.SEVERE, "Konnte Plugin-Ordner nicht erstellen", e);
         }
         config = loadMerged("config.json", new PluginConfig(), PluginConfig.class);
-        migrate();
         ranks = loadList("ranks.json", Rank.defaults(), new TypeToken<List<Rank>>() {}.getType());
         ranks.sort((a, b) -> Integer.compare(a.priority, b.priority));
+        migrate();
         locations = loadMerged("locations.json", new Locations(), Locations.class);
         warps = loadList("warps.json", new LinkedHashMap<String, SLoc>(), new TypeToken<LinkedHashMap<String, SLoc>>() {}.getType());
     }
@@ -107,6 +107,38 @@ public final class ConfigManager {
                 });
             }
             config.migrations.add("navigator_modes_2_8");
+            changed = true;
+        }
+        if (!config.migrations.contains("navigator_mw_lobbies_2_9")) {
+            // MissileWars: ein Server mit mehreren Runden → Lobby-Auswahl statt direktem Connect
+            for (int i = 0; i < config.navigatorItems.size(); i++) {
+                String l = config.navigatorItems.get(i);
+                if (l.contains(";connect-best:MissileWars;")) {
+                    config.navigatorItems.set(i, l.replace(";connect-best:MissileWars;", ";lobbies:missilewars:MissileWars;")
+                            .replace("Klicke zum Spielen", "Klicke für die Lobby-Auswahl"));
+                }
+            }
+            config.migrations.add("navigator_mw_lobbies_2_9");
+            changed = true;
+        }
+        if (!config.migrations.contains("ranks_shop_2_9")) {
+            // Kaufbare Ränge (VIP, Premium, Premium+, Elite, Legende) in bestehende ranks.json übernehmen
+            for (Rank r : Rank.shopRanks()) {
+                Rank existing = ranks.stream().filter(x -> x.name != null && x.name.equalsIgnoreCase(r.name)).findFirst().orElse(null);
+                if (existing == null) ranks.add(r);
+                else if (existing.permission != null && existing.permission.equals(r.permission)) existing.priority = r.priority;
+            }
+            ranks.sort((a, b) -> Integer.compare(a.priority, b.priority));
+            write("ranks.json", GSON.toJson(ranks));
+            config.migrations.add("ranks_shop_2_9");
+            changed = true;
+        }
+        if (!config.migrations.contains("crafterteam_logo_2_9")) {
+            // CrafterTeam-Logo aus dem Ressourcenpaket im Tab-Header (nur wenn der Standard-Header noch drin ist)
+            if (config.tablist.header != null && config.tablist.header.contains("ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ</b></gradient>\n<gray>Willkommen")) {
+                config.tablist.header = config.tablist.header.replace("<gradient:#00d2ff:#3a7bd5><b>ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ.ᴅᴇ</b></gradient>", "{i_crafterteam}");
+            }
+            config.migrations.add("crafterteam_logo_2_9");
             changed = true;
         }
         if (!config.migrations.contains("hotbar_cleanup_2_7")) {
@@ -314,6 +346,17 @@ public final class ConfigManager {
             this.display = display;
         }
 
+        /** Kaufbare Ränge (Rang-Shop) – Reihenfolge = Wertigkeit */
+        static List<Rank> shopRanks() {
+            List<Rank> l = new ArrayList<>();
+            l.add(new Rank("Legende", "lobbysystem.rank.legende", 7, "<gradient:#f9d423:#ff4e50>ʟᴇɢᴇɴᴅᴇ</gradient> <dark_gray>•</dark_gray> ", "gold", "<gradient:#f9d423:#ff4e50>Legende</gradient>"));
+            l.add(new Rank("Elite", "lobbysystem.rank.elite", 8, "<light_purple>ᴇʟɪᴛᴇ <dark_gray>•</dark_gray> ", "light_purple", "<light_purple>Elite"));
+            l.add(new Rank("Premium+", "lobbysystem.rank.premiumplus", 9, "<gold>ᴘʀᴇᴍɪᴜᴍ+ <dark_gray>•</dark_gray> ", "gold", "<gold>Premium+"));
+            l.add(new Rank("Premium", "lobbysystem.rank.premium", 10, "<gold>ᴘʀᴇᴍɪᴜᴍ <dark_gray>•</dark_gray> ", "gold", "<gold>Premium"));
+            l.add(new Rank("VIP", "lobbysystem.rank.vip", 11, "<green>ᴠɪᴘ <dark_gray>•</dark_gray> ", "green", "<green>VIP"));
+            return l;
+        }
+
         static List<Rank> defaults() {
             List<Rank> l = new ArrayList<>();
             l.add(new Rank("Leitung", "lobbysystem.rank.leitung", 1, "<dark_red>ʟᴇɪᴛᴜɴɢ <dark_gray>•</dark_gray> ", "dark_red", "<dark_red>Leitung"));
@@ -322,8 +365,7 @@ public final class ConfigManager {
             l.add(new Rank("Moderator", "lobbysystem.rank.mod", 4, "<dark_green>ᴍᴏᴅ <dark_gray>•</dark_gray> ", "dark_green", "<dark_green>Moderator"));
             l.add(new Rank("Supporter", "lobbysystem.rank.sup", 5, "<green>ꜱᴜᴘ <dark_gray>•</dark_gray> ", "green", "<green>Supporter"));
             l.add(new Rank("Builder", "lobbysystem.rank.builder", 6, "<yellow>ʙᴜɪʟᴅᴇʀ <dark_gray>•</dark_gray> ", "yellow", "<yellow>Builder"));
-            l.add(new Rank("Premium+", "lobbysystem.rank.premiumplus", 7, "<gold>ᴘʀᴇᴍɪᴜᴍ+ <dark_gray>•</dark_gray> ", "gold", "<gold>Premium+"));
-            l.add(new Rank("Premium", "lobbysystem.rank.premium", 8, "<gold>ᴘʀᴇᴍɪᴜᴍ <dark_gray>•</dark_gray> ", "gold", "<gold>Premium"));
+            l.addAll(shopRanks());
             l.add(new Rank("Spieler", "", 99, "<gray>", "gray", "<gray>Spieler"));
             return l;
         }

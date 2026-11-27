@@ -109,6 +109,14 @@ public final class Database {
                         + "deaths int not null default 0, games int not null default 0, level int not null default 0, "
                         + "updated bigint not null default 0, primary key (uuid, game))");
             }
+            try (Statement st = con.createStatement()) {
+                // Lobby-Auswahl für Spielmodi mit mehreren Runden (MissileWars) + Beitrittswünsche
+                st.executeUpdate("create table if not exists ls_game_lobbies (server varchar(64) not null, game varchar(32) not null, "
+                        + "lobby_id int not null, map varchar(64) not null, state varchar(16) not null, players int not null default 0, "
+                        + "max_players int not null default 0, updated bigint not null default 0, primary key (server, game, lobby_id))");
+                st.executeUpdate("create table if not exists ls_game_joins (uuid varchar(36) not null primary key, server varchar(64) not null, "
+                        + "game varchar(32) not null, lobby_id int not null, created bigint not null)");
+            }
             return null;
         }).get(15, TimeUnit.SECONDS);
     }

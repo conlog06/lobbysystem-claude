@@ -171,10 +171,13 @@ public final class ResourcePackManager implements Listener {
         m.put("i_online", glyphs ? "<white></white>" : "<green>●</green>");
         m.put("i_offline", glyphs ? "<white></white>" : "<red>●</red>");
         m.put("i_gem", glyphs ? "<white></white>" : "<aqua>◆</aqua>");
+        // CrafterTeam-Logo (Tab-Header) & kleiner CT-Tag
+        m.put("i_crafterteam", glyphs ? "<white>\uE200</white>" : "<gradient:#00d2ff:#3a7bd5><b>ᴄʀᴀꜰᴛᴇʀᴛᴇᴀᴍ</b></gradient>");
+        m.put("i_ct", glyphs ? "<white>\uE201</white>" : "<gradient:#00d2ff:#3a7bd5><b>ᴄᴛ</b></gradient>");
         // Rang-Badges (nur mit Pack – ohne Pack wird der normale Text-Prefix aus ranks.json genutzt)
         if (glyphs) {
             String[] keys = {"owner", "leitung", "admin", "dev", "mod", "sup", "builder", "content",
-                    "youtuber", "premiumplus", "premium", "vip", "spieler", "team"};
+                    "youtuber", "premiumplus", "premium", "vip", "spieler", "team", "elite", "legende"};
             for (int i = 0; i < keys.length; i++) {
                 m.put("r_" + keys[i], "<white>" + (char) (0xE100 + i) + "</white>");
             }
