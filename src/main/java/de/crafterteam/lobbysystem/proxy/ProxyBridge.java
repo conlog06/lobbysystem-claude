@@ -134,6 +134,7 @@ public final class ProxyBridge implements PluginMessageListener {
                         out.writeBoolean(cfg.chat.enabled);
                         out.writeUTF(my.enabled ? "mysql" : "sqlite");
                         out.writeUTF(my.enabled ? my.host + ":" + my.port + "/" + my.database : "plugins/LobbySystem/data.db");
+                        out.writeUTF(carrier.getUniqueId().toString()); // UUID-Abgleich mit dem Proxy
                     });
                 }
                 case "ONLINETIME" -> onlineTime.put(UUID.fromString(in.readUTF()), in.readLong());
